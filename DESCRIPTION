@@ -1,11 +1,10 @@
 Package: cytotypr
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Pipeline to Identify Cell Types from Cytometry Data
+Version: 0.0.0.900
+Author: Amy Fox
+Maintainer: The package maintainer <amyfox@colostate.edu>
+Description: Flow cytometry analysis pipeline to identify cell populations (or phenotypes) efficiently. Coupled with feature engineering and immunological context, researchers can immediately extrapolate novel discoveries through easy-to-understand plots.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
