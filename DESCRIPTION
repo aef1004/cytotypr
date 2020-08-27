@@ -8,3 +8,14 @@ Description: Flow cytometry analysis pipeline to identify cell populations (or p
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Imports: 
+    dplyr,
+    ggplot2,
+    tibble,
+    Biobase,
+    flowCore,
+    tidyr,
+    stringr
+RoxygenNote: 7.1.1
+Suggests: 
+    testthat

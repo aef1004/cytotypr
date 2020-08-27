@@ -1,0 +1,221 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# cytotypr
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of cytotypr is to ...
+
+## Installation
+
+You can install the development version of cytotypr from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("aef1004/cytotypr")
+```
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+```{r example}
+library(cytotypr)
+## basic example code
+```
+
+
+
+
+
+## Full Example
+Note that I currently have only downloaded a few flow cytometry files. They are from Cyto feature engineering T cell panel.
+
+```{r}
+library(data.table)
+library(openCyto)
+library(ncdfFlow)
+library(flowWorkspace)
+library(dplyr)
+library(ggcyto)
+library(stringr) #this should be already added to the cytotypr package
+library(scales)
+```
+
+
+Read in the initial gating strategy, which gates to live lymphocytes, into a `gatingTemplate` class.
+
+```{r}
+# Identify the file with the gating strategy 
+ws <- list.files("./inst/extdata/", 
+                 pattern = "gating_strategy.csv", 
+                 full = TRUE)
+ws
+
+```
+
+```{r}
+# View this template
+dtTemplate <- fread(ws)
+dtTemplate
+```
+
+```{r message = FALSE, warning = FALSE}
+# Read in the gating strategy to a 'gatingTemplate' object
+initial_gate <- gatingTemplate(ws) 
+plot(initial_gate)
+```
+### Read in the FMO data
+```{r}
+# Identify the file names of all 20 FCS flow cytometry experiments to 
+# read in. 
+FMO_fcsFiles <- list.files("./inst/extdata/FMOs", full = TRUE)
+FMO_fcsFiles
+
+```
+
+```{r}
+# Read these files into a 'ncdfFlowSet' object. This will taken a minute
+# or so to run. The resulting 'ncdfFlowset' object contains row names with the 
+# individual samples and column names with the markers/parameters used in the flow cytometer.
+ncfs_FMO <- read.ncdfFlowSet(FMO_fcsFiles, channel_alias = data.frame(alias = c("Zombie Nir-A"), channels = c("Zombie_NIR-A, Zombie NIR-A, Zombie Nir-A"))) 
+ncfs_FMO
+```
+
+Apply the initial gating to filter the data to only measurements on live lymphocyte cells.
+
+```{r}
+# Convert to a 'GatingSet' object, so we can apply the initial gating to this data.
+gs_FMO <- GatingSet(ncfs_FMO)
+gs_FMO
+```
+
+```{r fig.height = 8, fig.width = 4}
+# Apply the initial gating to this data, to filter to only measurements
+# on live lymphocyte cells. This may take a minute.
+gt_gating(initial_gate, gs_FMO)
+
+# You can plot the results of this gating with `plotGate`. For example, to plot
+# the gating for the first sample, run:
+plotGate(gs_FMO[[1]])
+```
+
+## Convert data to "tidy data" format
+
+Now that the initial gating has been applied, to limit the data to measurements oflive, singlet lymphocyte cells, we convert the data to a "tidy data" format, to allow us to work with "tidyverse" tools for further analysis and visualization.
+
+```{r}
+# Pull out the data from the 'live' node of the gating set (the last node
+# in the initial gating strategy).
+FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>% 
+  as.flowSet() 
+```
+
+Apply this function to the 'flowSet' of gated FMO data:
+
+```{r}
+FMO_gated_data <- tidy_flow_set(FMO_gated_data)
+FMO_gated_data
+```
+
+```{r}
+# note that here the filename and the column marker names need to match exactly
+FMO_gated_data_clean <- FMO_gated_data %>%
+  select(ends_with("-A"), -`FSC-A`, `SSC-A`, filename) %>%
+  dplyr::rename(`FoxP3` = "APC-A",
+         `CD44` = "APC-Fire 750-A",
+        `CD103` =  "APC-R700-A",       
+         `CD3` = "Alexa Fluor 532-A",
+         `Sca1` = "BB515-A",
+         `IL_10` = "BV421-A",
+         `CD4` = "BV480-A",
+         `CD69` = "BV510-A",
+         `CD8` = "BV570-A", 
+         `CTLA4` = "BV605-A",
+         `CD27` = "BV650-A",
+         `CD153` = "BV711-A",
+         `KLRG1` = "BV785-A",
+         `IL_17` = "PE-A",
+         `CD122` = "PE-Cy5-A",
+         `IFN` = "PE-Cy7-A", 
+         `CD62L` = "PE-Dazzle594-A",
+         `TNF` = "Pacific Blue-A", 
+         `CD28` = "PE-Cy5.5-A",
+         `PD1` = "PerCP-eFluor 710-A")  %>%
+   na.omit()%>%
+  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  mutate(filename = str_replace(filename, "IFNG", "IFN"))
+
+  
+right <- filter_FMO(FMO_gated_data_clean)
+
+add_quantile <- get_99(right)
+
+plot_FMOs(right, add_quantile)
+```
+
+
+### Gating the sample data
+
+I checked that all D30, D60, and D90 samples have Zombie and will run all the way through the gating when separated by day. Looking at the data, some of them are labeled Zombie NIR-A and Zombie Nir-A which means that they are not recognized as the same. - D90 has uncapitalized. I will need to read them in separately and then rename one of the two so that the cases match
+
+```{r warning=FALSE, fig.height=1.5, fig.width=1.5}
+
+fcsFiles <- list.files("./inst/extdata/Tcell_samples", 
+                       pattern = ".fcs", full = TRUE)
+
+# ncdfFlowset object contains row names with the individual samples and column names with the markers/parameters used in the flow cytometer
+ncfs <- read.ncdfFlowSet(fcsFiles, channel_alias = data.frame(alias = c("Zombie Nir-A"), channels = c("Zombie_NIR-A, Zombie NIR-A, Zombie Nir-A"))) 
+
+# apply gating set
+gs <- GatingSet(ncfs)
+
+# gate the samples
+gt_gating(initial_gate, gs)
+
+# View the gates
+plotGate(gs[[1]])
+
+ggcyto(gs[[3]], aes(x = `Zombie Nir-A`)) + 
+  geom_area(stat = "density", fill = "#440154FF") +
+  geom_gate("live")   +
+  ggcyto_par_set(limits = list(y = c(0, 5e-5), x = c(-1000, 1e5)))+
+  xlab("Zombie NIR-A") +
+  ylab("Density") +
+  ggtitle("Live") +
+  theme_gray() +
+  geom_stats(size = 5, adjust = 0.45, position = position_nudge(x = 5000)) +
+  labs_cyto("both") + 
+  theme(strip.text = element_blank(),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 20),
+        title = element_text(size = 20))+
+  scale_x_continuous(n.breaks = 3)
+
+```
+
+Pull out the gated data
+```{r}
+# Pull out the gated data - could potentially add to the function below
+gated_data <- gs_pop_get_data(gs, "live") %>% 
+  as.flowSet() 
+
+# tidy the flowset and convert to a dataframe
+all_gated_df <-  tidy_flow_set(gated_data) 
+
+unique(all_gated_df$filename)
+```
+
