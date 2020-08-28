@@ -44,7 +44,7 @@ library(cytotypr)
 ## Full Example
 Note that I currently have only downloaded a few flow cytometry files. They are from Cyto feature engineering T cell panel.
 
-```{r}
+```{r message = FALSE}
 library(data.table)
 library(openCyto)
 library(ncdfFlow)
@@ -53,6 +53,7 @@ library(dplyr)
 library(ggcyto)
 library(stringr) #this should be already added to the cytotypr package
 library(scales)
+library(tidyr)
 ```
 
 
@@ -120,20 +121,20 @@ Now that the initial gating has been applied, to limit the data to measurements 
 ```{r}
 # Pull out the data from the 'live' node of the gating set (the last node
 # in the initial gating strategy).
-FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>% 
+flowset_FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>% 
   as.flowSet() 
 ```
 
 Apply this function to the 'flowSet' of gated FMO data:
 
 ```{r}
-FMO_gated_data <- tidy_flow_set(FMO_gated_data)
+FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
 FMO_gated_data
 ```
 
 ```{r}
 # note that here the filename and the column marker names need to match exactly
-FMO_gated_data_clean <- FMO_gated_data %>%
+df_FMO_gated_data <- FMO_gated_data %>%
   select(ends_with("-A"), -`FSC-A`, `SSC-A`, filename) %>%
   dplyr::rename(`FoxP3` = "APC-A",
          `CD44` = "APC-Fire 750-A",
@@ -157,14 +158,15 @@ FMO_gated_data_clean <- FMO_gated_data %>%
          `PD1` = "PerCP-eFluor 710-A")  %>%
    na.omit()%>%
   dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  mutate(filename = str_replace(filename, ".fcs", "")) %>%
   mutate(filename = str_replace(filename, "IFNG", "IFN"))
 
   
-right <- filter_FMO(FMO_gated_data_clean)
+FMO_filtered_data <- filter_FMO(df_FMO_gated_data)
 
-add_quantile <- get_99(right)
+add_quantile <- get_99(FMO_filtered_data)
 
-plot_FMOs(right, add_quantile)
+plot_FMOs(FMO_filtered_data, add_quantile)
 ```
 
 
@@ -210,12 +212,95 @@ ggcyto(gs[[3]], aes(x = `Zombie Nir-A`)) +
 Pull out the gated data
 ```{r}
 # Pull out the gated data - could potentially add to the function below
-gated_data <- gs_pop_get_data(gs, "live") %>% 
+gated_flowset <- gs_pop_get_data(gs, "live") %>% 
   as.flowSet() 
 
 # tidy the flowset and convert to a dataframe
-all_gated_df <-  tidy_flow_set(gated_data) 
+df_all_gated <-  tidy_flow_set(gated_flowset) 
 
-unique(all_gated_df$filename)
+unique(df_all_gated$filename)
 ```
 
+Feature engineer the data
+
+Feature cut the data to get all of the possible populations for each file with the cell count and number of cells. Feature engineering is based on the 99%.
+
+Remove FoxP3
+Remove CD69 - spreading from Sca1 makes the marker unusable
+
+```{r}
+all_fe <- df_all_gated %>%
+  mutate(Timepoint = str_extract(filename, "D[0-9]*")) %>%
+  mutate(Group = str_extract(filename, "Group[:punct:][0-9][:punct:][A-Z]"),
+         Group = str_replace(Group, "Group_", "")) %>%
+  unite(filename, c("Timepoint", "Group")) %>%
+  select(ends_with("-A"), -`FSC-A`, filename) %>%
+  dplyr::rename(`FoxP3` = "APC-A",
+         `CD44` = "APC-Fire 750-A",
+        `CD103` =  "APC-R700-A",       
+         `CD3` = "Alexa Fluor 532-A",
+         `Sca1` = "BB515-A",
+         `IL_10` = "BV421-A",
+         `CD4` = "BV480-A",
+         `CD69` = "BV510-A",
+         `CD8` = "BV570-A", 
+         `CTLA4` = "BV605-A",
+         `CD27` = "BV650-A",
+         `CD153` = "BV711-A",
+         `KLRG1` = "BV785-A",
+         `IL_17` = "PE-A",
+         `CD122` = "PE-Cy5-A",
+         `IFN` = "PE-Cy7-A", 
+         `CD62L` = "PE-Dazzle594-A",
+         `TNF` = "Pacific Blue-A", 
+         `CD28` = "PE-Cy5.5-A",
+         `PD1` = "PerCP-eFluor 710-A") %>%
+  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  mutate(CD3 = fe(add_quantile, CD3, "CD3"),
+         CD4 = fe(add_quantile, CD4, "CD4"),
+         CD8 = fe(add_quantile, CD8, "CD8"),
+         CD44 = fe(add_quantile, CD44, "CD44"),
+         CD103 = fe(add_quantile, CD103, "CD103"),
+         Sca1 = fe(add_quantile, Sca1, "Sca1"),
+         IL_17 = fe(add_quantile,IL_17, "IL_17"),
+         CD69 = fe(add_quantile,CD69, "CD69"),
+         CTLA4 = fe(add_quantile,CTLA4, "CTLA4"),
+         CD27 = fe(add_quantile,CD27, "CD27"),
+         CD153 = fe(add_quantile,CD153, "CD153"),
+         KLRG1 = fe(add_quantile,KLRG1, "KLRG1"),
+         IFN = fe(add_quantile,IFN, "IFN"),
+         FoxP3 = fe(add_quantile,FoxP3, "FoxP3"),
+         CD122 = fe(add_quantile,CD122, "CD122"),
+         PD1 = fe(add_quantile,PD1, "PD1"),
+         CD62L = fe(add_quantile,CD62L, "CD62L"),
+         IL_10 = fe(add_quantile,IL_10, "IL_10"),
+         CD28 = fe(add_quantile,CD28, "CD28"),
+         TNF = fe(add_quantile,TNF, "TNF")) %>%
+  select(-`Zombie Nir-A`, -`AF-A`, -`SSC-A`, -FoxP3, -CD69) %>%
+  count_calc()
+
+```
+
+Visulatizations
+
+Initial identification of populations plot
+
+We first want to view all of the different cell phenotypes within the data
+
+```{r}
+# this is the order of markers that we want for all of our plots
+order_of_markers <- c("CD3", "CD4", "CD8",  "CD44", "CD103", "Sca1", "IL_17","CTLA4",
+                      "CD27",  "CD153", "KLRG1", "IFN",  "CD122", "PD1", "CD62L",
+                      "IL_10", "CD28","TNF")
+
+# to view all of the possible combinations
+total_phenotypes <- filter_for_total_pheno(all_fe, marker_order = order_of_markers)
+
+heatmap_all_pheno(total_phenotypes)
+
+# gives the total number of populations
+nrow(total_phenotypes) 
+```
+
+
+After identifying all phenotypes, we can filter the data to see the ones that we're interested in, for example, CD3+ cells that constitute >0.5% of total live leukocytes in a sample.
