@@ -12,9 +12,10 @@
 #' }
 #' @export
 #'
-#' @examples
+#' @examples tidy_flow_set(flowset_FMO_gated_data)
 #'
 #' @importFrom dplyr %>%
+#'
 tidy_flow_set <- function(flowSet){
   flow_set <- flowCore::fsApply(x = flowSet,
                                 FUN = tidy_flow_item)

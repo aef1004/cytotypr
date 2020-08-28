@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_FMOs.R
 \name{plot_FMOs}
 \alias{plot_FMOs}
-\title{Title}
+\title{Plot all of the FMOs and their cutoffs}
 \usage{
 plot_FMOs(df1, df2)
 }
@@ -12,8 +12,14 @@ plot_FMOs(df1, df2)
 \item{df2}{the dataframe that contains the quantile values}
 }
 \value{
-
+plots that shows data for each of the FMOs and where the cutoff is placed
 }
 \description{
-Title
+Plot all of the FMOs and their cutoffs
+}
+\examples{
+plot_FMOs(FMO_filtered_data, add_quantile)
+
+#' @importFrom rlang .data
+
 }

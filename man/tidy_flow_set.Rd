@@ -21,5 +21,6 @@ on the machine will show as columns in this data frame}
 This function ultimately converts a flowSet into a tidy data frame
 }
 \examples{
+tidy_flow_set(flowset_FMO_gated_data)
 
 }
