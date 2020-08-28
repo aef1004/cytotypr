@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_99.R
 \name{get_99}
 \alias{get_99}
-\title{Title}
+\title{Identify the 99 percent cutoff between negative and positive populations for each of the markers}
 \usage{
 get_99(df)
 }
@@ -10,11 +10,12 @@ get_99(df)
 \item{df}{the dataframe that contains the filtered FMO (so only the FMO filename has data for the FMO marker)}
 }
 \value{
-
+dataframe that contains the value of the 99 percent cutoff for each of the FMOs
 }
 \description{
-Title
+Identify the 99 percent cutoff between negative and positive populations for each of the markers
 }
 \examples{
+get_99(FMO_filtered_data)
 
 }

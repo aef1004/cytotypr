@@ -10,11 +10,12 @@ filter_FMO(clean_FMO)
 \item{clean_FMO}{the dataframe that contains the FMO samples and expression levels, note that here the filename and the column marker names need to match exactly}
 }
 \value{
-
+dataframe that contains 4 columns containing the FMO filename, marker name, MFI datapoints that match with the FMO marker of interest, and the SSC.
 }
 \description{
 Match filename of FMO to filename of FMO samples
 }
 \examples{
+filter_FMO(df_FMO_gated_data)
 
 }
