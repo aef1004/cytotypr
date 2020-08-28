@@ -2,22 +2,23 @@
 #'
 #' @param clean_FMO the dataframe that contains the FMO samples and expression levels, note that here the filename and the column marker names need to match exactly
 #'
-#' @return
+#' @return dataframe that contains 4 columns containing the FMO filename, marker name, MFI datapoints that match with the FMO marker of interest, and the SSC.
 #' @export
 #'
-#' @examples
+#' @examples filter_FMO(df_FMO_gated_data)
 #'
 #' @importFrom dplyr %>%
+#' @importFrom rlang .data
 #'
 filter_FMO <- function(clean_FMO) {
 
   testing <- clean_FMO %>%
-    tidyr::gather(key = "marker", value = "MFI", -filename, -`SSC-A`,)
+    tidyr::gather(key = "marker", value = "MFI", -.data$filename, -.data$`SSC-A`,)
 
-  right <- testing %>%
+  FMO_filtered_data <- testing %>%
     dplyr::filter(stringr::str_detect(testing$filename, stringr::fixed(testing$marker)) &
                     stringr::str_detect(testing$marker, stringr::fixed(testing$filename)))
 
-  return(right)
+  return(FMO_filtered_data)
 
 }
