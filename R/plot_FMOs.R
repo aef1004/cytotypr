@@ -8,7 +8,7 @@
 #'
 #' @examples plot_FMOs(FMO_filtered_data, add_quantile)
 #'
-#' #' @importFrom rlang .data
+#' @importFrom rlang .data
 #'
 plot_FMOs <- function(df1, df2) {
 

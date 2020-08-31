@@ -20,6 +20,4 @@ Plot all of the FMOs and their cutoffs
 \examples{
 plot_FMOs(FMO_filtered_data, add_quantile)
 
-#' @importFrom rlang .data
-
 }
