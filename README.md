@@ -43,6 +43,7 @@ library(ggcyto)
 library(stringr) #this should be already added to the cytotypr package
 library(scales)
 library(tidyr)
+library(superheat)
 ```
 
 Read in the initial gating strategy, which gates to live lymphocytes,
@@ -180,7 +181,7 @@ ncfs_FMO <- read.ncdfFlowSet(FMO_fcsFiles, channel_alias = data.frame(alias = c(
 #> done!
 ncfs_FMO
 #> An ncdfFlowSet with 20 samples.
-#> NCDF file : /var/folders/56/2lqw28ls6b1bnx36fgm2qfcc0000gn/T//RtmpEJZ5V5/ncfs1817337d331b.nc 
+#> NCDF file : /var/folders/56/2lqw28ls6b1bnx36fgm2qfcc0000gn/T//Rtmp19twmY/ncfs175ee659b3be5.nc 
 #> An object of class 'AnnotatedDataFrame'
 #>   rowNames: CD103.fcs CD122.fcs ... TNF.fcs (20 total)
 #>   varLabels: name
@@ -554,3 +555,25 @@ nrow(total_phenotypes)
 After identifying all phenotypes, we can filter the data to see the ones
 that we’re interested in, for example, CD3+ cells that constitute \>0.5%
 of total live leukocytes in a sample.
+
+``` r
+# view the specific cell phenotypes we're interested in
+sample_populations <- all_fe %>%
+  dplyr::filter(CD3 == 1 & percentage > 0.5) %>%
+  filter_pops() 
+
+sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe, marker_vector = order_of_markers)
+#> Joining, by = "population"
+#> Joining, by = c("filename", "IL_10", "TNF", "CD4", "CD8", "CTLA4", "CD27", "CD153", "KLRG1", "Sca1", "CD3", "IL_17", "CD62L", "CD122", "CD28", "PD1", "IFN", "CD103", "CD44")
+```
+
+Plot sample populations
+
+Correlation plot
+
+``` r
+
+corr <- calc_corr(sample_populations_all_groups)
+
+# superheat(corr,  row.title = "Populations", column.title = "Populations",  column.title.size = 8, row.title.size = 8, bottom.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)), left.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)), bottom.label.size = .05, left.label.size = .05, bottom.label.text.size = 5, left.label.text.size = 5)
+```

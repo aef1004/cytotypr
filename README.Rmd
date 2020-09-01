@@ -54,6 +54,7 @@ library(ggcyto)
 library(stringr) #this should be already added to the cytotypr package
 library(scales)
 library(tidyr)
+library(superheat)
 ```
 
 
@@ -304,3 +305,29 @@ nrow(total_phenotypes)
 
 
 After identifying all phenotypes, we can filter the data to see the ones that we're interested in, for example, CD3+ cells that constitute >0.5% of total live leukocytes in a sample.
+
+```{r}
+# view the specific cell phenotypes we're interested in
+sample_populations <- all_fe %>%
+  dplyr::filter(CD3 == 1 & percentage > 0.5) %>%
+  filter_pops() 
+
+sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe, marker_vector = order_of_markers)
+```
+
+Plot sample populations
+```{r}
+
+```
+
+
+Correlation plot
+
+```{r}
+
+corr <- calc_corr(sample_populations_all_groups)
+
+# superheat(corr,  row.title = "Populations", column.title = "Populations",  column.title.size = 8, row.title.size = 8, bottom.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)), left.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)), bottom.label.size = .05, left.label.size = .05, bottom.label.text.size = 5, left.label.text.size = 5)
+
+```
+
