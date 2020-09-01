@@ -2,13 +2,13 @@
 #'
 #' @param quantile_df the dataframe that contains the list of cutoffs for each marker
 #' @param marker name of the marker column to feature engineer
-#' @param marker_name name of the marker column to feature engineer in quotes ("")
+#' @param marker_name name of the marker column to feature engineer in quotes
 #'
 #' @return convert the marker data column into either a 0 for negative expression or 1 for positive expressoin
 #' @export
 #'
 #' @examples df_all_gated %>%
-#' rename(`CD3` = "Alexa Fluor 532-A") %>%
+#' rename("CD3" = "Alexa Fluor 532-A") %>%
 #' mutate(CD3 = fe(add_quantile, CD3, "CD3")
 #'
 #' @importFrom dplyr %>%

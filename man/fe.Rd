@@ -11,7 +11,7 @@ fe(quantile_df, marker, marker_name)
 
 \item{marker}{name of the marker column to feature engineer}
 
-\item{marker_name}{name of the marker column to feature engineer in quotes ("")}
+\item{marker_name}{name of the marker column to feature engineer in quotes}
 }
 \value{
 convert the marker data column into either a 0 for negative expression or 1 for positive expressoin
@@ -21,7 +21,7 @@ Feature engineer the data
 }
 \examples{
 df_all_gated \%>\%
-rename(`CD3` = "Alexa Fluor 532-A") \%>\%
+rename("CD3" = "Alexa Fluor 532-A") \%>\%
 mutate(CD3 = fe(add_quantile, CD3, "CD3")
 
 }
