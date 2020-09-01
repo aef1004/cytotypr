@@ -107,3 +107,15 @@
 #'   ...
 #' }
 "all_fe"
+
+
+#' A dataset containing the percentages for each population and sample in the data
+#'
+#' @format A dataframe with 594 rows and 3 variables:
+#' \describe{
+#'   \item{population}{ character: the population name of the filtered data}
+#'   \item{filename}{ character: the sample name from which each data point originates}
+#'   \item{percentage}{ numeric: the percentage of cells with a particular phenotype listed in the markers}
+#'   ...
+#' }
+"sample_populations_all_groups"
