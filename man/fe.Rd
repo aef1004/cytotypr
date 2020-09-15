@@ -20,8 +20,10 @@ convert the marker data column into either a 0 for negative expression or 1 for 
 Feature engineer the data
 }
 \examples{
-df_all_gated \%>\%
+library(dplyr)
+all_of(df_all_gated) \%>\%
+select("Alexa Fluor 532-A") \%>\%
 rename("CD3" = "Alexa Fluor 532-A") \%>\%
-mutate(CD3 = fe(add_quantile, CD3, "CD3")
+mutate(CD3 = fe(add_quantile, CD3, "CD3"))
 
 }

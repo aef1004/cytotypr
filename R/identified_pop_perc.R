@@ -7,7 +7,11 @@
 #' @return dataframe that contains percentage of cells in each of the filtered populations
 #' @export
 #'
-#' @examples identified_pop_perc(sample_populations, all_fe, marker_vector = order_of_markers)
+#' @examples
+#' order_of_markers <- c("CD3", "CD4", "CD8",  "CD44", "CD103", "Sca1", "IL_17","CTLA4",
+#' "CD27",  "CD153", "KLRG1", "IFN",  "CD122", "PD1", "CD62L", "IL_10", "CD28","TNF")
+#'
+#' identified_pop_perc(sample_populations, all_fe, marker_vector = order_of_markers)
 #'
 #' @importFrom dplyr %>%
 identified_pop_perc <- function(df1, df2, marker_vector) {
@@ -26,7 +30,7 @@ identified_pop_perc <- function(df1, df2, marker_vector) {
   # add the percentages back
   sample_populations_all_groups <- dplyr::left_join(add_pops, df2) %>%
     dplyr::select(.data$population, .data$filename, .data$percentage) %>%
-    dplyr::mutate_all(list(~replace_na(., 0)))
+    dplyr::mutate_all(list(~tidyr::replace_na(., 0)))
 
   return(sample_populations_all_groups)
 }

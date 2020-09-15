@@ -7,19 +7,9 @@
 \format{
 A data frame with 1,056,969 rows and 28 variables:
 \describe{
-  \item{AF-A}{ numeric: the MFI expression for the Autofluorescence Area for each cell}
-  \item{APC-A}{ numeric: the MFI expression in the APC-A channel for each cell}
   \item{filename}{ character: the sample name from which each data point originates}
-  \item{Time}{ numeric: the relative time at which each cell event was recorded}
-  \item{SSC-H}{ numeric: the MFI expression for the Side Scatter (complexity) Height for each cell}
-  \item{SSC-A}{ numeric: the MFI expression for the Side Scatter (complexity) Area for each cell}
-  \item{FSC-H}{ numeric: the MFI expression for the Forward Scatter (size) Height for each cell}
-  \item{FSC-A}{ numeric: the MFI expression for the Forward Scatter (size) Area for each cell}
-  \item{BV421-A}{ numeric: the MFI expression in the BV421-A channel for each cell}
-  \item{Pacific Blue-A}{ numeric: the MFI expression Pacific Blue-A channel for each cell}
-  \item{BV480-A}{ numeric: the MFI expression BV480-A channel  for each cell}
   ...
-}
+  }
 }
 \usage{
 df_all_gated

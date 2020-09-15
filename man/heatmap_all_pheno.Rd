@@ -16,10 +16,13 @@ pheatmap of all of the phenotypes denoted by a combination of positive and negat
 Visualize all of identified populations in a heatmap
 }
 \examples{
-order_of_markers <- c("CD3", "CD4", "CD8",  "CD44", "CD103", "Sca1", "IL_17","CTLA4",
+library(dplyr)
+
+ order_of_markers <- c("CD3", "CD4", "CD8",  "CD44", "CD103", "Sca1", "IL_17","CTLA4",
 "CD27",  "CD153", "KLRG1", "IFN",  "CD122", "PD1", "CD62L", "IL_10", "CD28","TNF")
+
 filter_for_total_pheno(all_fe, marker_order = order_of_markers) \%>\%
-heatmap(all_pheno)
+heatmap_all_pheno()
 
 #' @importFrom dplyr \%>\%
 

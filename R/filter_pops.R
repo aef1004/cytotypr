@@ -5,7 +5,9 @@
 #' @return dataframe that contains the filtered population names
 #' @export
 #'
-#' @examples all_fe %>%
+#' @examples
+#' library(dplyr)
+#' all_fe %>%
 #'  dplyr::filter(CD3 == 1 & percentage > 0.5) %>%
 #'  filter_pops()
 #'

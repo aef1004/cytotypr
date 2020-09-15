@@ -16,6 +16,7 @@ dataframe that contains the filtered population names
 Filter populations to show all the populations of interest
 }
 \examples{
+library(dplyr)
 all_fe \%>\%
  dplyr::filter(CD3 == 1 & percentage > 0.5) \%>\%
  filter_pops()

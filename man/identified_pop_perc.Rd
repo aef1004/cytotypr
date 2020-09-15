@@ -20,6 +20,9 @@ dataframe that contains percentage of cells in each of the filtered populations
 Add in the percentage data for all of the samples for the filtered populations
 }
 \examples{
+order_of_markers <- c("CD3", "CD4", "CD8",  "CD44", "CD103", "Sca1", "IL_17","CTLA4",
+"CD27",  "CD153", "KLRG1", "IFN",  "CD122", "PD1", "CD62L", "IL_10", "CD28","TNF")
+
 identified_pop_perc(sample_populations, all_fe, marker_vector = order_of_markers)
 
 }
