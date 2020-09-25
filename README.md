@@ -7,7 +7,7 @@
 
 <!-- badges: end -->
 
-The goal of cytotypr is to …
+The goal of cytotypr is to provide a pipeline for analyzing cytometry data more quickly.
 
 ## Installation
 
