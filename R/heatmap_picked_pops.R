@@ -7,6 +7,7 @@
 #' @export
 #'
 #' @examples heatmap_picked_pops(phenotype_data, order_of_markers)
+#'
 heatmap_picked_pops <- function(df, order_of_markers) {
 
   # create an annotated data frame to add to pheatmap
