@@ -1,5 +1,5 @@
 ---
-title: "README_short"
+title: "README_short_complicated"
 output: html_document
 ---
 
@@ -17,19 +17,21 @@ library(ggcyto)
 library(stringr) #this should be already added to the cytotypr package
 library(scales)
 library(tidyr)
+library(superheat)
 library(tibble)
 library(pheatmap)
-library(reshape2)
-library(viridis)
-library(readxl)
-library(broom)
-library(purrr)
-library(cytotypr) # this is my package
 ```
 
 ## Convert data to "tidy data" format
 
 Now that the initial gating has been applied, to limit the data to measurements oflive, singlet lymphocyte cells, we convert the data to a "tidy data" format, to allow us to work with "tidyverse" tools for further analysis and visualization.
+
+```{r}
+# Pull out the data from the 'live' node of the gating set (the last node
+# in the initial gating strategy).
+flowset_FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>% 
+  cytoset_to_flowSet() 
+```
 
 Apply this function to the 'flowSet' of gated FMO data:
 
@@ -78,11 +80,13 @@ plot_FMOs(FMO_filtered_data, add_quantile)
 
 # Gated Data
 Pull out the gated data
-
-
 ```{r}
+# Pull out the gated data - could potentially add to the function below
+gated_flowset <- gs_pop_get_data(gs, "live") %>% 
+  cytoset_to_flowSet() 
+
 # tidy the flowset and convert to a dataframe
-df_all_gated <-  tidy_flow_set(flowset_gated_data) 
+df_all_gated <-  tidy_flow_set(gated_flowset) 
 
 unique(df_all_gated$filename)
 ```
@@ -183,12 +187,6 @@ Plot sample populations
 ```{r fig.width = 4, fig.height = 6}
 
 ############ Simple plot - sample populations #######################
-# this should be working because the function is exported....
-# maybe the problem was that I didn't "document()" the files
-# as.numeric.factor <- function(x) {
-#   as.numeric(levels(x))[x]
-# }
-
 
 simple_pop_df <- sample_populations %>%
   column_to_rownames("population") 
@@ -200,6 +198,42 @@ simple_pop_df %>%
              labels_row = rownames(simple_pop_df),
              cellwidth = 15, cellheight = 15, angle_col = 45, 
              color = c("#3F4788FF", "#56C667FF"), cutree_rows = 2, legend = FALSE)
+  
+  
+############ Complicated plot (background color) - sample populations ############
+# these are the colors to use for th pheatmap annotations
+my_colors <- list(lineage = c(`Double Negative` = "darkturquoise", 
+                              `T Helper` = "plum3",
+                              `Cytotoxic T` = "hotpink",
+                              `Double Positive` = "orange"))
+
+
+as.numeric.factor <- function(x) {
+  as.numeric(levels(x))[x]
+}
+
+
+# take the filtered data and add annotations for the differnt lineages, cell type, and resident status
+plot_sample <- function(df, order_of_markers, order_of_types) {
+  
+  df %>%
+  mutate_all(~as.numeric.factor(.)) %>%
+      mutate(lineage = ifelse(CD4 == 0 & CD8 ==0, "Double Negative",
+                          ifelse(CD4 == 1 & CD8 ==0,"T Helper",
+                          ifelse(CD4 ==0 & CD8 ==1, "Cytotoxic T", 
+                                 "Double Positive"))), .before = all_of(order_of_markers)) %>% # could remove the "all_of"
+  select(-population) %>%
+  arrange(match(lineage, order_of_types)) %>%
+  mutate(population = c(paste0("Pop", 1: nrow(df)))) %>%
+  tibble::column_to_rownames("population")
+}
+
+order_of_types <- c("Double Negative", "T Helper", "Cytotoxic T", "Double Positive")
+
+phenotype_data <- plot_sample(sample_populations, order_of_markers, order_of_types)
+
+heatmap_picked_pops(phenotype_data, order_of_markers)
+
 
 ```
 
@@ -207,17 +241,80 @@ Correlation plot
 
 ```{r}
 
+############# Basic example with superheat ######################
+corr <- calc_corr(sample_populations_all_groups)
+
+superheat(corr,  row.title = "Populations", column.title = "Populations")
+
+#bottom.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)), left.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)))
+
+
+
 ########### Basic example with ggplot ###############################
+library(reshape2)
+library(viridis)
 
 corr <- calc_corr(sample_populations_all_groups)
 
-melted_corr <- format_corr(corr)
+melted_corr <- melt(corr) %>%
+  mutate(Var1 = as.factor(Var1),
+         Var2 = as.factor(Var2)) 
   
-plot_corr(melted_corr) +
+ggplot(melted_corr, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile() +
+    scale_fill_viridis() +
+    theme_bw() +
     xlab("Populations") +
     ylab("Populations") +
     labs(fill = "Correlation") 
 
+########### Complicated example with ggplot - not working ###############################
+
+
+add_color_for_corr <- function(my_colors) {
+  
+  type_colors <- as.data.frame(my_colors) %>%
+  rename(color = colnames(as.data.frame(my_colors))) %>%
+  rownames_to_column("type")
+
+  pheno_with_names <- phenotype_data %>%
+  select(-order_of_markers) 
+  
+  save_color <- pheno_with_names %>%
+    rename(type = colnames(pheno_with_names)) %>%
+    rownames_to_column("population") %>%
+  left_join(type_colors) %>%
+    mutate(population = as.numeric(str_replace(population, "Pop", ""))) %>%
+    distinct(color, .keep_all = TRUE)
+  
+  colo <- ifelse(melted_corr$Var1 == save_color[1, "population"]:save_color[2, "population"], save_color[1, "color"],
+                 ifelse(melted_corr$Var1 == save_color[2, "population"]:save_color[3, "population"], save_color[2, "color"],
+                 ifelse(melted_corr$Var1 == save_color[3, "population"]-1:save_color[4, "population"], save_color[3, "color"],
+                 save_color[4, "color"])))
+  
+  # key is that there cannot be overlapping numbers
+  colo <- ifelse(melted_corr$Var1 == 1:5, "blue", 
+         ifelse(melted_corr$Var1 == 6:10, "red", "yellow"))
+}
+
+  
+ggplot(melted_corr, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile() +
+    scale_fill_viridis() +
+    theme_bw() +
+    xlab("Populations") +
+    ylab("Populations") +
+    labs(fill = "Correlation") +
+  theme(axis.text.x = element_text(color = colo))
+
+a <- ifelse(melted_corr$Var1 == 1:5, "red", "blue")
+
+  # count the number of rows with each phenotype to create gaps in the plot
+  lengths_to_cut <- rownames(unique(phenotype_annot)) %>%
+    stringr::str_replace("Pop", "") %>%
+    as.numeric() %>%
+    as.data.frame()%>%
+    dplyr::mutate(. = .-1)
 ```
 
 Time Series Plot
@@ -260,6 +357,55 @@ ggplot(pops_for_plots_average, aes(x = factor(Timepoint, levels = c("30", "60", 
         legend.text = element_text(size=18),
         legend.key.size = unit(1.5, "line"))
 
+########### Complicated time series example (with background) ###############################
+color_for_facets <- phenotype_data %>%
+  select(lineage, population) %>%
+  mutate(col = ifelse(lineage == "Double Negative", "darkturquoise", 
+                      ifelse(lineage == "T Helper", "plum3",
+                             ifelse(lineage == "Cytotoxic T", "hotpink", 
+                                    ifelse(lineage == "Double Positive", "orange", "brown")))))
+
+# take the data for filtered populations and rename so that plots are pretty
+pops_for_plots_average <- sample_populations_all_groups %>%
+  separate(filename, into = c("Timepoint", "Mouse", "Group", "Number"), sep = "_") %>%
+  dplyr::group_by(population, Timepoint, Group) %>%
+  dplyr::mutate(average_percent = mean(percentage)) %>%
+  select(-Number, -percentage, -Mouse) %>%
+  ungroup() %>%
+  unique() %>%
+  dplyr::mutate(Group = str_replace(Group, "1", "PBS"),
+         Group = str_replace(Group, "2", "BCG")) %>%
+  dplyr::mutate(Timepoint = str_replace(Timepoint, "D30", "30"),
+         Timepoint = str_replace(Timepoint, "D60", "60"),
+         Timepoint = str_replace(Timepoint, "D90", "90")) %>%
+  mutate(Group = str_replace(Group, "PBS", "Control"),
+         Group = str_replace(Group, "BCG", "Vaccinated"))
+
+facets_for_timeseries <- left_join(pops_for_plots_average, color_for_facets, by = "population") 
+
+# convert populations to factor to put in order for the plot
+facets_for_timeseries$population <-  factor(facets_for_timeseries$population, 
+                                    levels = paste0("Pop", c(1:length(unique(facets_for_timeseries$population)))))
+
+ggplot(facets_for_timeseries, aes(x = factor(Timepoint, levels = c("30", "60", "90")),
+                                 y = average_percent, group = Group, color = Group)) +
+  geom_rect(aes(fill = col),xmin = -Inf,xmax = Inf,
+            ymin = -Inf,ymax = Inf, alpha = 0.2) +
+  scale_fill_identity() +
+  geom_point() +
+  geom_line() +
+  facet_wrap("population", scales = "free", ncol = 7) +
+  xlab("Days Post-Infection") +
+  ylab("Average Percent of Total Live Leukocytes") +
+  scale_color_manual(values = c("black", "white")) +
+  theme_gray() +
+    theme(axis.text.x = element_text(angle = 45, size = 13, hjust = 1),
+        axis.text.y = element_text(size = 13),
+        strip.text.x = element_text(size = 10),
+        axis.title = element_text(size = 17),
+        title = element_text(size = 20),
+        legend.text = element_text(size=18),
+        legend.key.size = unit(1.5, "line"))
 ```
 
 Data Visualization
@@ -329,8 +475,11 @@ length(fitted_models$p.value)
 
 ```
 
-Using geom_label instead of stat_smooth_fun
+Try using geom_label instead of stat_smooth_fun
 ```{r fig.width = 3.5, fig.height= 3.5}
+
+############### add geom_text with r^2 to ggplot rather than stat_smooth_func ###########
+
 
 ########################### try geom_text from a separate dataframe  #######
 # problem with the placement of the labels because I'm using free_x in the facet_wrap
@@ -360,6 +509,50 @@ ggplot(pops_CFUs) +
         axis.text.y = element_text(size = 9),
         axis.title = element_text(size = 15),
         title = element_text(size = 17))
+
+```
+
+
+
+```{r}
+############### Complicated CFU plotting with background colors####################
+# read in the CFU data
+library(readxl)
+CFUs <- readxl::read_xlsx("./inst/extdata/CFU_data.xlsx") %>%
+  dplyr::filter(Organ == "Lung") %>%
+  dplyr::filter(Group == "Group1" | Group == "Group2")
+
+# clean the flow data and prepare to join with CFU
+pops_for_CFUs <- sample_populations_all_groups %>%
+  separate(filename, into = c("Timepoint", "Mouse", "Group", "Number"), sep = "_") %>%
+  dplyr::mutate(Timepoint = str_replace(Timepoint, "D", "")) %>%
+  dplyr::mutate(Timepoint = as.numeric(Timepoint)) %>%
+  unite(Group, c(Mouse, Group)) %>%
+  dplyr::mutate(Group = str_replace(Group, "_", "")) 
+
+# join together the CFU data and the population data
+pops_CFUs <- inner_join(pops_for_CFUs, CFUs, by = c("Group", "Number", "Timepoint")) 
+facets_for_CFUs <- left_join(pops_CFUs, color_for_facets, by = "population") 
+
+facets_for_CFUs$population <-  factor(facets_for_CFUs$population, 
+                                    levels = paste0("Pop", c(1:length(unique(facets_for_CFUs$population)))))
+
+ggplot(facets_for_CFUs, aes(percentage, CFU)) +
+  geom_rect(aes(fill = col),xmin = -Inf,xmax = Inf,
+            ymin = -Inf,ymax = Inf, alpha = 0.05) + 
+  scale_fill_identity() +
+  geom_point(color = "black") +
+  geom_smooth(method = "lm", se = FALSE, color = "#3F4788FF") +
+  facet_wrap(~population, scales = "free_x", ncol = 8) +
+  stat_smooth_func(geom= "text", method = "lm", hjust = 0, parse = TRUE, color = "white") +
+  xlab("Percentage of Cells") +
+  ylab("log10 CFU") +
+  ggtitle("Population and CFU Linear regression") +
+  theme(axis.text.x = element_text(size = 9, hjust = 1),
+        axis.text.y = element_text(size = 9),
+        axis.title = element_text(size = 15),
+        title = element_text(size = 17))
+
 
 ```
 

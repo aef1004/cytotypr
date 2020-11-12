@@ -55,6 +55,8 @@ library(stringr) #this should be already added to the cytotypr package
 library(scales)
 library(tidyr)
 library(superheat)
+library(tibble)
+library(pheatmap)
 ```
 
 
@@ -110,9 +112,9 @@ gs_FMO
 # on live lymphocyte cells. This may take a minute.
 gt_gating(initial_gate, gs_FMO)
 
-# You can plot the results of this gating with `plotGate`. For example, to plot
+# You can plot the results of this gating with `autoplot`. For example, to plot
 # the gating for the first sample, run:
-plotGate(gs_FMO[[1]])
+autoplot(gs_FMO[[1]])
 ```
 
 ## Convert data to "tidy data" format
@@ -123,7 +125,7 @@ Now that the initial gating has been applied, to limit the data to measurements 
 # Pull out the data from the 'live' node of the gating set (the last node
 # in the initial gating strategy).
 flowset_FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>% 
-  as.flowSet() 
+  cytoset_to_flowSet() 
 ```
 
 Apply this function to the 'flowSet' of gated FMO data:
@@ -190,7 +192,7 @@ gs <- GatingSet(ncfs)
 gt_gating(initial_gate, gs)
 
 # View the gates
-plotGate(gs[[1]])
+autoplot(gs[[1]])
 
 ggcyto(gs[[3]], aes(x = `Zombie Nir-A`)) + 
   geom_area(stat = "density", fill = "#440154FF") +
@@ -211,13 +213,15 @@ ggcyto(gs[[3]], aes(x = `Zombie Nir-A`)) +
 ```
 
 Pull out the gated data
+
+Want to change gated_flowset to flowset_gated_data
 ```{r}
 # Pull out the gated data - could potentially add to the function below
-gated_flowset <- gs_pop_get_data(gs, "live") %>% 
-  as.flowSet() 
+flowset_gated_data <- gs_pop_get_data(gs, "live") %>% 
+  cytoset_to_flowSet() 
 
 # tidy the flowset and convert to a dataframe
-df_all_gated <-  tidy_flow_set(gated_flowset) 
+df_all_gated <-  tidy_flow_set(flowset_gated_data) 
 
 unique(df_all_gated$filename)
 ```
@@ -316,7 +320,34 @@ sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe,
 ```
 
 Plot sample populations
-```{r}
+```{r fig.width = 4, fig.height = 6}
+# these are the colors to use for th pheatmap annotations
+my_colors <- list(lineage = c(`Double Negative` = "darkturquoise", 
+                              `T Helper` = "plum3",
+                              `Cytotoxic T` = "hotpink",
+                              `Double Positive` = "orange"))
+
+# take the filtered data and add annotations for the differnt lineages, cell type, and resident status
+plot_sample <- function(df, order_of_markers, order_of_types) {
+  
+  df %>%
+  mutate_all(~as.numeric.factor(.)) %>%
+      mutate(lineage = ifelse(CD4 == 0 & CD8 ==0, "Double Negative",
+                          ifelse(CD4 == 1 & CD8 ==0,"T Helper",
+                          ifelse(CD4 ==0 & CD8 ==1, "Cytotoxic T", 
+                                 "Double Positive"))), .before = order_of_markers) %>%
+  select(-population) %>%
+  arrange(match(lineage, order_of_types)) %>%
+  mutate(population = c(paste0("Pop", 1: nrow(df)))) %>%
+  tibble::column_to_rownames("population")
+}
+
+order_of_types <- c("Double Negative", "T Helper", "Cytotoxic T", "Double Positive")
+
+phenotype_data <- plot_sample(sample_populations, order_of_markers, order_of_types)
+
+heatmap_picked_pops(phenotype_data, order_of_markers)
+
 
 ```
 
@@ -324,10 +355,123 @@ Plot sample populations
 Correlation plot
 
 ```{r}
+corr <- calc_corr(sample_populations_all_groups)
+
+
+
+superheat(corr,  row.title = "Populations", column.title = "Populations")
+
+#bottom.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)), left.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)))
+
+
+
+########### try with ggplot instead
+library(reshape2)
+library(viridis)
 
 corr <- calc_corr(sample_populations_all_groups)
 
-# superheat(corr,  row.title = "Populations", column.title = "Populations",  column.title.size = 8, row.title.size = 8, bottom.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)), left.label.col = c(rep("darkturquoise", DN_length), rep("plum3", T_helper_length), rep("hotpink", Cytotoxic_length), rep("orange", DP_length)), bottom.label.size = .05, left.label.size = .05, bottom.label.text.size = 5, left.label.text.size = 5)
+melted_corr <- melt(corr) %>%
+  mutate(Var1 = as.factor(Var1),
+         Var2 = as.factor(Var2)) 
+  
 
+
+add_color_for_corr <- function(my_colors) {
+  
+  type_colors <- as.data.frame(my_colors) %>%
+  rename(color = colnames(as.data.frame(my_colors))) %>%
+  rownames_to_column("type")
+
+  pheno_with_names <- phenotype_data %>%
+  select(-order_of_markers) 
+  
+  save_color <- pheno_with_names %>%
+    rename(type = colnames(pheno_with_names)) %>%
+    rownames_to_column("population") %>%
+  left_join(type_colors) %>%
+    mutate(population = as.numeric(str_replace(population, "Pop", ""))) %>%
+    distinct(color, .keep_all = TRUE)
+  
+  colo <- ifelse(melted_corr$Var1 == save_color[1, "population"]:save_color[2, "population"], save_color[1, "color"],
+                 ifelse(melted_corr$Var1 == save_color[2, "population"]:save_color[3, "population"], save_color[2, "color"],
+                 ifelse(melted_corr$Var1 == save_color[3, "population"]-1:save_color[4, "population"], save_color[3, "color"],
+                 save_color[4, "color"])))
+  
+  # key is that there cannot be overlapping numbers
+  colo <- ifelse(melted_corr$Var1 == 1:5, "blue", 
+         ifelse(melted_corr$Var1 == 6:10, "red", "yellow"))
+}
+
+  
+ggplot(melted_corr, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile() +
+    scale_fill_viridis() +
+    theme_bw() +
+    xlab("Populations") +
+    ylab("Populations") +
+    labs(fill = "Correlation") +
+  theme(axis.text.x = element_text(color = colo))
+
+a <- ifelse(melted_corr$Var1 == 1:5, "red", "blue")
+
+  # count the number of rows with each phenotype to create gaps in the plot
+  lengths_to_cut <- rownames(unique(phenotype_annot)) %>%
+    stringr::str_replace("Pop", "") %>%
+    as.numeric() %>%
+    as.data.frame()%>%
+    dplyr::mutate(. = .-1)
+```
+
+Time Series Plot
+```{r}
+color_for_facets <- phenotype_data %>%
+  select(lineage, population) %>%
+  mutate(col = ifelse(lineage == "Double Negative", "darkturquoise", 
+                      ifelse(lineage == "T Helper", "plum3",
+                             ifelse(lineage == "Cytotoxic T", "hotpink", 
+                                    ifelse(lineage == "Double Positive", "orange", "brown")))))
+
+# take the data for filtered populations and rename so that plots are pretty
+pops_for_plots_average <- sample_populations_all_groups %>%
+  separate(filename, into = c("Timepoint", "Mouse", "Group", "Number"), sep = "_") %>%
+  dplyr::group_by(population, Timepoint, Group) %>%
+  dplyr::mutate(average_percent = mean(percentage)) %>%
+  select(-Number, -percentage, -Mouse) %>%
+  ungroup() %>%
+  unique() %>%
+  dplyr::mutate(Group = str_replace(Group, "1", "PBS"),
+         Group = str_replace(Group, "2", "BCG")) %>%
+  dplyr::mutate(Timepoint = str_replace(Timepoint, "D30", "30"),
+         Timepoint = str_replace(Timepoint, "D60", "60"),
+         Timepoint = str_replace(Timepoint, "D90", "90")) %>%
+  mutate(Group = str_replace(Group, "PBS", "Control"),
+         Group = str_replace(Group, "BCG", "Vaccinated"))
+
+facets_for_timeseries <- left_join(pops_for_plots_average, color_for_facets, by = "population") 
+
+# convert populations to factor to put in order for the plot
+facets_for_timeseries$population <-  factor(facets_for_timeseries$population, 
+                                    levels = paste0("Pop", c(1:length(unique(facets_for_timeseries$population)))))
+
+ggplot(facets_for_timeseries, aes(x = factor(Timepoint, levels = c("30", "60", "90")),
+                                 y = average_percent, group = Group, color = Group)) +
+  geom_rect(aes(fill = col),xmin = -Inf,xmax = Inf,
+            ymin = -Inf,ymax = Inf, alpha = 0.2) +
+  scale_fill_identity() +
+  geom_point() +
+  geom_line() +
+  facet_wrap("population", scales = "free", ncol = 7) +
+  xlab("Days Post-Infection") +
+  ylab("Average Percent of Total Live Leukocytes") +
+  scale_color_manual(values = c("black", "white")) +
+  theme_gray() +
+    theme(axis.text.x = element_text(angle = 45, size = 13, hjust = 1),
+        axis.text.y = element_text(size = 13),
+        strip.text.x = element_text(size = 10),
+        axis.title = element_text(size = 17),
+        title = element_text(size = 20),
+        legend.text = element_text(size=18),
+        legend.key.size = unit(1.5, "line"))
 ```
 
