@@ -1,6 +1,6 @@
 #' Plot heatmap of the selected populations of interest
 #'
-#' @param df
+#' @param df dataframe that contains the populations (listed as 0's and 1's), the population numbers, and the phenotype descriptions
 #' @param order_of_markers vector of the order of markers to display on the plot x-axis
 #'
 #' @return heatmap separated by lineages
