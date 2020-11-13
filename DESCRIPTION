@@ -9,19 +9,21 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: 
-    dplyr,
-    ggplot2,
-    tibble,
     Biobase,
+    dplyr,
     flowCore,
-    tidyr,
-    stringr,
+    ggplot2,
+    pheatmap,
+    reshape2,
     rlang,
     scales,
     stats,
-    pheatmap
+    stringr,
+    tibble,
+    tidyr,
+    viridis
 RoxygenNote: 7.1.1
 Suggests: 
     testthat
 Depends: 
-    R (>= 2.10)
+    R (>= 3.5.0)

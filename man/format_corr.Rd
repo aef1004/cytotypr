@@ -10,7 +10,7 @@ format_corr(corr_matrix)
 \item{corr_matrix}{a correlation matrix derived from using stats::cor()}
 }
 \value{
-
+convert matrix to tidy data with columns for `Var1` and `Var2` (the populations) and `value` (the correlation value)
 }
 \description{
 Format correlation matrix for input into ggplot

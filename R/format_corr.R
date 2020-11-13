@@ -2,7 +2,7 @@
 #'
 #' @param corr_matrix a correlation matrix derived from using stats::cor()
 #'
-#' @return
+#' @return convert matrix to tidy data with columns for `Var1` and `Var2` (the populations) and `value` (the correlation value)
 #' @export
 #'
 #' @examples

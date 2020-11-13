@@ -2,10 +2,12 @@
 #'
 #' @param df df containing the melted correlation data with Var1 and Var2, and a value
 #'
-#' @return
+#' @return ggplot showing correlation between different populations
 #' @export
 #'
 #' @examples
+#' corr <- calc_corr(sample_populations_all_groups)
+#' melted_corr <- format_corr(corr)
 #' plot_corr(melted_corr)
 #'
 #' @importFrom rlang .data

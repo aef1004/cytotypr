@@ -7,9 +7,10 @@
 #'
 #' @examples
 #'
-#' x <- as.factor(0, 1)
-#' as.numeric.factor(x)
+#' x <- as.factor(c(0, 1))
+#' convert_factor_numeric(x)
 #'
-as.numeric.factor <- function(x) {
+#'
+convert_factor_numeric <- function(x) {
   as.numeric(levels(x))[x]
   }
