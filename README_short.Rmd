@@ -9,25 +9,18 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r message = FALSE}
 library(data.table)
-library(openCyto)
-library(ncdfFlow)
-library(flowWorkspace)
 library(dplyr)
-library(ggcyto)
-library(stringr) #this should be already added to the cytotypr package
-library(scales)
+library(stringr) #this should be already added to the cytotypr package but it won't knit without
 library(tidyr)
 library(tibble)
-library(pheatmap)
-library(reshape2)
-library(viridis)
+library(ggplot2)
 library(readxl)
 library(broom)
 library(purrr)
 library(cytotypr) # this is my package
 ```
 
-## Convert data to "tidy data" format
+## Convert flowSet to "tidy data" format
 
 Now that the initial gating has been applied, to limit the data to measurements oflive, singlet lymphocyte cells, we convert the data to a "tidy data" format, to allow us to work with "tidyverse" tools for further analysis and visualization.
 
@@ -42,7 +35,7 @@ FMO_gated_data
 ```{r}
 # note that here the filename and the column marker names need to match exactly
 df_FMO_gated_data <- FMO_gated_data %>%
-  select(ends_with("-A"), -`FSC-A`, `SSC-A`, filename) %>%
+  dplyr::select(ends_with("-A"), -`FSC-A`, `SSC-A`, filename) %>%
   dplyr::rename(`FoxP3` = "APC-A",
          `CD44` = "APC-Fire 750-A",
         `CD103` =  "APC-R700-A",       
@@ -65,8 +58,8 @@ df_FMO_gated_data <- FMO_gated_data %>%
          `PD1` = "PerCP-eFluor 710-A")  %>%
    na.omit()%>%
   dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
-  mutate(filename = str_replace(filename, ".fcs", "")) %>%
-  mutate(filename = str_replace(filename, "IFNG", "IFN"))
+  dplyr::mutate(filename = str_replace(filename, ".fcs", "")) %>%
+  dplyr::mutate(filename = str_replace(filename, "IFNG", "IFN"))
 
   
 FMO_filtered_data <- filter_FMO(df_FMO_gated_data)
@@ -79,7 +72,6 @@ plot_FMOs(FMO_filtered_data, add_quantile)
 # Gated Data
 Pull out the gated data
 
-
 ```{r}
 # tidy the flowset and convert to a dataframe
 df_all_gated <-  tidy_flow_set(flowset_gated_data) 
@@ -87,7 +79,7 @@ df_all_gated <-  tidy_flow_set(flowset_gated_data)
 unique(df_all_gated$filename)
 ```
 
-Feature engineer the data
+# Feature engineer the data
 
 Feature cut the data to get all of the possible populations for each file with the cell count and number of cells. Feature engineering is based on the 99%.
 
@@ -147,7 +139,7 @@ all_fe <- df_all_gated %>%
 
 ```
 
-Visulatizations
+# Visulatizations
 
 Initial identification of populations plot
 
@@ -180,22 +172,16 @@ sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe,
 ```
 
 Plot sample populations
-```{r fig.width = 4, fig.height = 6}
+```{r fig.width = 2, fig.height = 2.5}
 
 ############ Simple plot - sample populations #######################
-# this should be working because the function is exported....
-# maybe the problem was that I didn't "document()" the files
-# as.numeric.factor <- function(x) {
-#   as.numeric(levels(x))[x]
-# }
-
 
 simple_pop_df <- sample_populations %>%
   column_to_rownames("population") 
 
 simple_pop_df %>%
-  dplyr::select(order_of_markers) %>%
-  mutate_all(~as.numeric.factor(.)) %>%
+  dplyr::select(all_of(order_of_markers)) %>%
+  mutate_all(~convert_factor_numeric(.)) %>%
     pheatmap::pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
              labels_row = rownames(simple_pop_df),
              cellwidth = 15, cellheight = 15, angle_col = 45, 
@@ -214,14 +200,14 @@ corr <- calc_corr(sample_populations_all_groups)
 melted_corr <- format_corr(corr)
   
 plot_corr(melted_corr) +
-    xlab("Populations") +
-    ylab("Populations") +
-    labs(fill = "Correlation") 
+    ggplot2::xlab("Populations") +
+    ggplot2::ylab("Populations") +
+    ggplot2::labs(fill = "Correlation") 
 
 ```
 
-Time Series Plot
-```{r fig.width = 5, fig.height = 3}
+Time Series Plot 
+```{r}
 ########### Basic time series example ###############################
 
 # take the data for filtered populations and rename so that plots are pretty
@@ -252,13 +238,13 @@ ggplot(pops_for_plots_average, aes(x = factor(Timepoint, levels = c("30", "60", 
   xlab("Days Post-Infection") +
   ylab("Average Percent of Total Live Leukocytes") +
   theme_gray() +
-    theme(axis.text.x = element_text(angle = 45, size = 13, hjust = 1),
-        axis.text.y = element_text(size = 13),
-        strip.text.x = element_text(size = 10),
-        axis.title = element_text(size = 17),
-        title = element_text(size = 20),
-        legend.text = element_text(size=18),
-        legend.key.size = unit(1.5, "line"))
+    theme(axis.text.x = element_text(angle = 45, size = 8, hjust = 1),
+        axis.text.y = element_text(size = 6),
+        strip.text.x = element_text(size = 8),
+        axis.title = element_text(size = 10),
+        title = element_text(size = 10),
+        legend.text = element_text(size=8),
+        legend.key.size = unit(1, "line"))
 
 ```
 
@@ -329,7 +315,7 @@ length(fitted_models$p.value)
 
 ```
 
-Using geom_label instead of stat_smooth_fun
+Using geom_label instead of stat_smooth_fun 
 ```{r fig.width = 3.5, fig.height= 3.5}
 
 ########################### try geom_text from a separate dataframe  #######
@@ -362,4 +348,40 @@ ggplot(pops_CFUs) +
         title = element_text(size = 17))
 
 ```
+
+Try CFU/flow plots that will fit in README
+```{r}
+
+########################### try geom_text from a separate dataframe  #######
+# problem with the placement of the labels because I'm using free_x in the facet_wrap
+# but when I remove the free_x, the data is scrunched up on the y-axis
+
+values_for_plot <- fitted_models %>%
+  mutate(p.val.adj = p.adjust(p.value, method = "bonferroni", 
+                              n = length(fitted_models$p.value))) 
+
+r_labeling <- left_join(pops_CFUs, values_for_plot, by = "population") %>%
+  group_by(population) %>%
+  mutate(average_percentage = mean(percentage)) %>%
+  select(population, average_percentage, adj.r.squared, p.val.adj) %>%
+  unique()
+
+ggplot(pops_CFUs) +
+  scale_fill_identity() +
+  geom_point(aes(percentage, CFU), color = "black", size = 1) +
+  geom_smooth(aes(x = percentage, y = CFU), method = "lm", se = FALSE, color = "#3F4788FF") +
+  geom_text(data = r_labeling, aes(x = average_percentage, y = 5, 
+                                   label = paste("r^2 = ", round(adj.r.squared, 3))), size = 3) +
+  facet_wrap(~population, scales = "free_x", ncol = 8) +
+  xlab("Percentage of Cells") +
+  ylab("log10 CFU") +
+  ggtitle("Population and CFU Linear regression") +
+  theme(axis.text.x = element_text(size = 6, hjust = 1),
+        axis.text.y = element_text(size = 6),
+        axis.title = element_text(size = 10),
+        title = element_text(size = 10))
+
+```
+
+
 
