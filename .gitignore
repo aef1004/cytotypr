@@ -4,3 +4,4 @@
 .Ruserdata
 *.fcs
 /data/
+inst/doc

@@ -12,6 +12,7 @@ Imports:
     Biobase,
     dplyr,
     flowCore,
+    forcats,
     ggplot2,
     pheatmap,
     reshape2,
@@ -24,6 +25,9 @@ Imports:
     viridis
 RoxygenNote: 7.1.1
 Suggests: 
-    testthat
+    testthat,
+    knitr,
+    rmarkdown
 Depends: 
     R (>= 3.5.0)
+VignetteBuilder: knitr
