@@ -13,7 +13,7 @@ You can install the development version of cytotypr from
 devtools::install_github("aef1004/cytotypr")
 ```
 
-## Simple Example
+## Basic Example
 
 This is a basic example which shows you how to obtain basic results and
 plots for flow cytometry data using FMOs:
@@ -23,7 +23,7 @@ library(cytotypr)
 ## basic example code
 ```
 
-List of additional packages needed
+List of additional packages needed to run this example
 
 ``` r
 library(data.table)
@@ -37,14 +37,21 @@ library(broom)
 library(purrr)
 ```
 
-Note that I currently have only downloaded a few flow cytometry files.
-They are from Cyto feature engineering T cell panel. \#\# Convert
-flowSet to “tidy data” format
+The data that is being used in this example is from the paper
+“Cyto-feature engineering….” The samples are from the lungs of C57BL/6
+mice that were either sham-vaccinated or vaccinated with an
+*Mycobacterium tuberculosis* vaccine, Bacillus Calmette–Guérin (BCG).
+The flow cytometry panel is used to elucidate specific T cell
+populations.
 
-Now that the initial gating has been applied, to limit the data to
-measurements oflive, singlet lymphocyte cells, we convert the data to a
-“tidy data” format, to allow us to work with “tidyverse” tools for
-further analysis and visualization.
+For the purpose of this basic example, the flow cytometry samples have
+been read in as a flowset and initial gating has already been applied to
+limit the data to measurements of live, singlet lymphocyte cells.
+
+## Convert flowSet to “tidy data” format
+
+We first want to convert the data to a “tidy data” format, to allow us
+to work with “tidyverse” tools for further analysis and visualization.
 
 Apply this function to the ‘flowSet’ of gated FMO data:
 
@@ -243,8 +250,6 @@ Plot sample populations
 
 ``` r
 
-############ Simple plot - sample populations #######################
-
 simple_pop_df <- sample_populations %>%
   column_to_rownames("population") 
 
@@ -263,8 +268,6 @@ Correlation plot
 
 ``` r
 
-########### Basic example with ggplot ###############################
-
 corr <- calc_corr(sample_populations_all_groups)
 
 melted_corr <- format_corr(corr)
@@ -280,7 +283,6 @@ plot_corr(melted_corr) +
 Time Series Plot
 
 ``` r
-########### Basic time series example ###############################
 
 # take the data for filtered populations and rename so that plots are pretty
 
@@ -316,7 +318,6 @@ Data Visualization
 <!-- end list -->
 
 ``` r
-############### Simple CFU plotting ###########################
 
 CFUs <- readxl::read_xlsx("./inst/extdata/CFU_data.xlsx") %>%
   dplyr::filter(Organ == "Lung") %>%
