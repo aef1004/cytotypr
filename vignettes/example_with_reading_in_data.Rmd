@@ -6,7 +6,6 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -19,10 +18,7 @@ knitr::opts_chunk$set(
 
 # cytotypr
 
-<!-- badges: start -->
-<!-- badges: end -->
-
-The goal of cytotypr is to ...
+The goal of cytotypr is to identify flow cytometry cell populations efficiently using either Fluorescent Minus One controls (FMOs) or distinct population differences.
 
 ## Installation
 
@@ -34,15 +30,13 @@ devtools::install_github("aef1004/cytotypr")
 ```
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+This is an full example which shows you how to obtain basic results and plots for flow cytometry data using FMOs:
+
+It starts by reading in the flow cytometry files, performing initial gating, and then performing the feature engineering and ploting the results.
 
 ```{r example}
 library(cytotypr)
-## basic example code
 ```
-
-
-
 
 
 ## Full Example
@@ -68,7 +62,7 @@ Read in the initial gating strategy, which gates to live lymphocytes, into a `ga
 
 ```{r}
 # Identify the file with the gating strategy 
-ws <- list.files("./inst/extdata/", 
+ws <- list.files("../inst/extdata/", 
                  pattern = "gating_strategy.csv", 
                  full = TRUE)
 ws
@@ -90,12 +84,12 @@ plot(initial_gate)
 ```{r}
 # Identify the file names of all 20 FCS flow cytometry experiments to 
 # read in. 
-FMO_fcsFiles <- list.files("./inst/extdata/FMOs", full = TRUE)
+FMO_fcsFiles <- list.files("../inst/extdata/FMOs", full = TRUE)
 FMO_fcsFiles
 
 ```
 
-```{r}
+```{r message = FALSE}
 # Read these files into a 'ncdfFlowSet' object. This will taken a minute
 # or so to run. The resulting 'ncdfFlowset' object contains row names with the 
 # individual samples and column names with the markers/parameters used in the flow cytometer.
@@ -183,7 +177,7 @@ I checked that all D30, D60, and D90 samples have Zombie and will run all the wa
 
 ```{r warning=FALSE, fig.height=1.5, fig.width=1.5}
 
-fcsFiles <- list.files("./inst/extdata/Tcell_samples", 
+fcsFiles <- list.files("../inst/extdata/Tcell_samples", 
                        pattern = ".fcs", full = TRUE)
 
 # ncdfFlowset object contains row names with the individual samples and column names with the markers/parameters used in the flow cytometer
@@ -198,7 +192,7 @@ gt_gating(initial_gate, gs)
 # View the gates
 autoplot(gs[[1]])
 
-ggcyto(gs[[3]], aes(x = `Zombie Nir-A`)) + 
+ggcyto(gs[[1]], aes(x = `Zombie Nir-A`)) + 
   geom_area(stat = "density", fill = "#440154FF") +
   geom_gate("live")   +
   ggcyto_par_set(limits = list(y = c(0, 5e-5), x = c(-1000, 1e5)))+
@@ -335,11 +329,11 @@ my_colors <- list(lineage = c(`Double Negative` = "darkturquoise",
 plot_sample <- function(df, order_of_markers, order_of_types) {
   
   df %>%
-  mutate_all(~as.numeric.factor(.)) %>%
+  mutate_all(~convert_factor_numeric(.)) %>%
       mutate(lineage = ifelse(CD4 == 0 & CD8 ==0, "Double Negative",
                           ifelse(CD4 == 1 & CD8 ==0,"T Helper",
                           ifelse(CD4 ==0 & CD8 ==1, "Cytotoxic T", 
-                                 "Double Positive"))), .before = order_of_markers) %>%
+                                 "Double Positive"))), .before = all_of(order_of_markers))%>%
   select(-population) %>%
   arrange(match(lineage, order_of_types)) %>%
   mutate(population = c(paste0("Pop", 1: nrow(df)))) %>%
@@ -350,7 +344,7 @@ order_of_types <- c("Double Negative", "T Helper", "Cytotoxic T", "Double Positi
 
 phenotype_data <- plot_sample(sample_populations, order_of_markers, order_of_types)
 
-heatmap_picked_pops(phenotype_data, order_of_markers)
+#heatmap_picked_pops(phenotype_data, order_of_markers)
 
 
 ```
@@ -358,7 +352,7 @@ heatmap_picked_pops(phenotype_data, order_of_markers)
 
 Correlation plot
 
-```{r}
+```{r fig.height = 3, fig.width=3}
 corr <- calc_corr(sample_populations_all_groups)
 
 
@@ -369,68 +363,69 @@ superheat(corr,  row.title = "Populations", column.title = "Populations")
 
 
 
-########### try with ggplot instead
+########### try with ggplot instead - this
 library(reshape2)
 library(viridis)
 
-corr <- calc_corr(sample_populations_all_groups)
-
-melted_corr <- melt(corr) %>%
-  mutate(Var1 = as.factor(Var1),
-         Var2 = as.factor(Var2)) 
-  
-
-
-add_color_for_corr <- function(my_colors) {
-  
-  type_colors <- as.data.frame(my_colors) %>%
-  rename(color = colnames(as.data.frame(my_colors))) %>%
-  rownames_to_column("type")
-
-  pheno_with_names <- phenotype_data %>%
-  select(-order_of_markers) 
-  
-  save_color <- pheno_with_names %>%
-    rename(type = colnames(pheno_with_names)) %>%
-    rownames_to_column("population") %>%
-  left_join(type_colors) %>%
-    mutate(population = as.numeric(str_replace(population, "Pop", ""))) %>%
-    distinct(color, .keep_all = TRUE)
-  
-  colo <- ifelse(melted_corr$Var1 == save_color[1, "population"]:save_color[2, "population"], save_color[1, "color"],
-                 ifelse(melted_corr$Var1 == save_color[2, "population"]:save_color[3, "population"], save_color[2, "color"],
-                 ifelse(melted_corr$Var1 == save_color[3, "population"]-1:save_color[4, "population"], save_color[3, "color"],
-                 save_color[4, "color"])))
-  
-  # key is that there cannot be overlapping numbers
-  colo <- ifelse(melted_corr$Var1 == 1:5, "blue", 
-         ifelse(melted_corr$Var1 == 6:10, "red", "yellow"))
-}
-
-  
-ggplot(melted_corr, aes(x = Var1, y = Var2, fill = value)) +
-    geom_tile() +
-    scale_fill_viridis() +
-    theme_bw() +
-    xlab("Populations") +
-    ylab("Populations") +
-    labs(fill = "Correlation") +
-  theme(axis.text.x = element_text(color = colo))
-
-a <- ifelse(melted_corr$Var1 == 1:5, "red", "blue")
-
-  # count the number of rows with each phenotype to create gaps in the plot
-  lengths_to_cut <- rownames(unique(phenotype_annot)) %>%
-    stringr::str_replace("Pop", "") %>%
-    as.numeric() %>%
-    as.data.frame()%>%
-    dplyr::mutate(. = .-1)
+# corr <- calc_corr(sample_populations_all_groups)
+# 
+# melted_corr <- melt(corr) %>%
+#   mutate(Var1 = as.factor(Var1),
+#          Var2 = as.factor(Var2)) 
+#   
+# 
+# 
+# add_color_for_corr <- function(my_colors) {
+#   
+#   type_colors <- as.data.frame(my_colors) %>%
+#   rename(color = colnames(as.data.frame(my_colors))) %>%
+#   rownames_to_column("type")
+# 
+#   pheno_with_names <- phenotype_data %>%
+#   select(-order_of_markers) 
+#   
+#   save_color <- pheno_with_names %>%
+#     rename(type = colnames(pheno_with_names)) %>%
+#     rownames_to_column("population") %>%
+#   left_join(type_colors) %>%
+#     mutate(population = as.numeric(str_replace(population, "Pop", ""))) %>%
+#     distinct(color, .keep_all = TRUE)
+#   
+#   colo <- ifelse(melted_corr$Var1 == save_color[1, "population"]:save_color[2, "population"], save_color[1, "color"],
+#                  ifelse(melted_corr$Var1 == save_color[2, "population"]:save_color[3, "population"], save_color[2, "color"],
+#                  ifelse(melted_corr$Var1 == save_color[3, "population"]-1:save_color[4, "population"], save_color[3, "color"],
+#                  save_color[4, "color"])))
+#   
+#   # key is that there cannot be overlapping numbers
+#   colo <- ifelse(melted_corr$Var1 == 1:5, "blue", 
+#          ifelse(melted_corr$Var1 == 6:10, "red", "yellow"))
+# }
+# 
+#   
+# ggplot(melted_corr, aes(x = Var1, y = Var2, fill = value)) +
+#     geom_tile() +
+#     scale_fill_viridis() +
+#     theme_bw() +
+#     xlab("Populations") +
+#     ylab("Populations") +
+#     labs(fill = "Correlation") +
+#   theme(axis.text.x = element_text(color = colo))
+# 
+# a <- ifelse(melted_corr$Var1 == 1:5, "red", "blue")
+# 
+#   # count the number of rows with each phenotype to create gaps in the plot
+#   lengths_to_cut <- rownames(unique(phenotype_annot)) %>%
+#     stringr::str_replace("Pop", "") %>%
+#     as.numeric() %>%
+#     as.data.frame()%>%
+#     dplyr::mutate(. = .-1)
 ```
 
 Time Series Plot
-```{r}
+```{r fig.width = 4, fig.height - 3}
 color_for_facets <- phenotype_data %>%
-  select(lineage, population) %>%
+  select(lineage) %>%
+  rownames_to_column("population") %>%
   mutate(col = ifelse(lineage == "Double Negative", "darkturquoise", 
                       ifelse(lineage == "T Helper", "plum3",
                              ifelse(lineage == "Cytotoxic T", "hotpink", 
@@ -438,10 +433,10 @@ color_for_facets <- phenotype_data %>%
 
 # take the data for filtered populations and rename so that plots are pretty
 pops_for_plots_average <- sample_populations_all_groups %>%
-  separate(filename, into = c("Timepoint", "Mouse", "Group", "Number"), sep = "_") %>%
+  separate(filename, into = c("Timepoint", "Group", "Mouse"), sep = "_") %>%
   dplyr::group_by(population, Timepoint, Group) %>%
   dplyr::mutate(average_percent = mean(percentage)) %>%
-  select(-Number, -percentage, -Mouse) %>%
+  select(-percentage, -Mouse) %>%
   ungroup() %>%
   unique() %>%
   dplyr::mutate(Group = str_replace(Group, "1", "PBS"),
