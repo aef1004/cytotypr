@@ -148,7 +148,10 @@ Feature cut the data to get all of the possible populations for each
 file with the cell count and number of cells. Feature engineering is
 based on the 99%.
 
-Remove FoxP3 Remove CD69 - spreading from Sca1 makes the marker unusable
+Remove FoxP3 (APC-A) Remove CD69 (BV510-A)- spreading from Sca1 makes
+the marker unusable
+
+Original
 
 ``` r
 all_fe <- df_all_gated %>%
@@ -156,7 +159,8 @@ all_fe <- df_all_gated %>%
   mutate(Group = str_extract(filename, "Group[:punct:][0-9][:punct:][A-Z]"),
          Group = str_replace(Group, "Group_", "")) %>%
   unite(filename, c("Timepoint", "Group")) %>%
-  select(ends_with("-A"), -`FSC-A`, filename) %>%
+  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  select(ends_with("-A"), -`FSC-A`, -`Zombie Nir-A`, -`AF-A`, -`SSC-A`, filename) %>%
   dplyr::rename(`FoxP3` = "APC-A",
          `CD44` = "APC-Fire 750-A",
         `CD103` =  "APC-R700-A",       
@@ -177,7 +181,7 @@ all_fe <- df_all_gated %>%
          `TNF` = "Pacific Blue-A", 
          `CD28` = "PE-Cy5.5-A",
          `PD1` = "PerCP-eFluor 710-A") %>%
-  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  select(-CD69, -FoxP3) %>%
   mutate(CD3 = fe(add_quantile, CD3, "CD3"),
          CD4 = fe(add_quantile, CD4, "CD4"),
          CD8 = fe(add_quantile, CD8, "CD8"),
@@ -185,20 +189,17 @@ all_fe <- df_all_gated %>%
          CD103 = fe(add_quantile, CD103, "CD103"),
          Sca1 = fe(add_quantile, Sca1, "Sca1"),
          IL_17 = fe(add_quantile,IL_17, "IL_17"),
-         CD69 = fe(add_quantile,CD69, "CD69"),
          CTLA4 = fe(add_quantile,CTLA4, "CTLA4"),
          CD27 = fe(add_quantile,CD27, "CD27"),
          CD153 = fe(add_quantile,CD153, "CD153"),
          KLRG1 = fe(add_quantile,KLRG1, "KLRG1"),
          IFN = fe(add_quantile,IFN, "IFN"),
-         FoxP3 = fe(add_quantile,FoxP3, "FoxP3"),
          CD122 = fe(add_quantile,CD122, "CD122"),
          PD1 = fe(add_quantile,PD1, "PD1"),
          CD62L = fe(add_quantile,CD62L, "CD62L"),
          IL_10 = fe(add_quantile,IL_10, "IL_10"),
          CD28 = fe(add_quantile,CD28, "CD28"),
          TNF = fe(add_quantile,TNF, "TNF")) %>%
-  select(-`Zombie Nir-A`, -`AF-A`, -`SSC-A`, -FoxP3, -CD69) %>%
   count_calc()
 ```
 
@@ -295,7 +296,7 @@ pops_for_plots_average <- sample_populations_all_groups %>%
          Group = str_replace(Group, "2", "Vaccinated")) %>%
   dplyr::mutate(Timepoint = str_extract(Timepoint, "[0-9].+"))%>%
   dplyr::mutate(pop = as.numeric(str_extract(population, "[:digit:]+"))) 
-#> `summarise()` regrouping output by 'population', 'Timepoint' (override with `.groups` argument)
+#> `summarise()` has grouped output by 'population', 'Timepoint'. You can override using the `.groups` argument.
 
 
 ggplot(pops_for_plots_average, aes(x = Timepoint, y = average_percent, 
