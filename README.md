@@ -85,6 +85,14 @@ FMO_gated_data
 #> #   `APC-Fire 750-A` <dbl>, `Zombie Nir-A` <dbl>, `AF-A` <dbl>
 ```
 
+Note that when you plot the FMOs here, you should see all of the FMOs
+that you want to use. If you don’t see all of them, ensure that all
+ofyour filenames and column names for each of the markers matches
+exactly. For example, if the filename says “CD103\_f” but the
+corresponding column name for that marker is “CD103”, you need to either
+change the filename or column name so that they are exactly the
+same.
+
 ``` r
 # note that here the filename and the column marker names need to match exactly
 df_FMO_gated_data <- FMO_gated_data %>%

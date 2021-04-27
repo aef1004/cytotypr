@@ -130,9 +130,10 @@ Apply this function to the 'flowSet' of gated FMO data:
 
 ```{r}
 FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
-FMO_gated_data
+
 ```
 
+Note that when you plot the FMOs here, you should see all of the FMOs that you want to use. If you don't see all of them, ensure that all ofyour filenames and column names for each of the markers matches exactly. For example, if the filename says "CD103_f" but the corresponding column name for that marker is "CD103", you need to either change the filename or column name so that they are exactly the same. 
 ```{r}
 # note that here the filename and the column marker names need to match exactly
 df_FMO_gated_data <- FMO_gated_data %>%
@@ -311,10 +312,26 @@ After identifying all phenotypes, we can filter the data to see the ones that we
 ```{r}
 # view the specific cell phenotypes we're interested in
 sample_populations <- all_fe %>%
-  dplyr::filter(CD3 == 1 & percentage > 0.5) %>%
+  dplyr::filter(CD3 == 1 & percentage > 1) %>%
   filter_pops() 
 
 sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe, marker_vector = order_of_markers)
+```
+
+Plot sample populations
+```{r fig.width = 2, fig.height = 4}
+
+simple_pop_df <- sample_populations %>%
+  column_to_rownames("population") 
+
+simple_pop_df %>%
+  dplyr::select(all_of(order_of_markers)) %>%
+  mutate_all(~convert_factor_numeric(.)) %>%
+    pheatmap::pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
+             labels_row = rownames(simple_pop_df),
+             cellwidth = 15, cellheight = 15, angle_col = 45, 
+             color = c("#3F4788FF", "#56C667FF"), cutree_rows = 2, legend = FALSE)
+
 ```
 
 Plot sample populations
@@ -343,6 +360,8 @@ plot_sample <- function(df, order_of_markers, order_of_types) {
 order_of_types <- c("Double Negative", "T Helper", "Cytotoxic T", "Double Positive")
 
 phenotype_data <- plot_sample(sample_populations, order_of_markers, order_of_types)
+
+
 
 #heatmap_picked_pops(phenotype_data, order_of_markers)
 
