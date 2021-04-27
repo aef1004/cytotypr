@@ -57,6 +57,9 @@ library(tibble)
 library(pheatmap)
 ```
 
+The first thing that you need to do is develop an intial gating strategy. This includes typical data cleaning normally performed on every flow cytometry sample. A typical gating strategy will first gate on "singlets" or single cells, then "lymphocytes" to remove debris and then only the live cells. Information on developing a .csv with different gating strategies can be found here: http://opencyto.org/articles/HowToWriteCSVTemplate.html
+
+Briefly, the "alias" column is what you will call each of the gating populations, for example, when gating on singlets, I'll probably want to give the alias of "singlets". The "pop" column takes in either a "+" or "-". When you want to take the positive cells, or the cells on the right side (or within) a the gate, you add a "+" here. The "parent" column lists the name of the cells that you want to gate. For example, the first parent will be "root" because  because we're gating on all of the available cells. If we gate our root cells to look at our siglets, then our next gate will use "singlets" as the parent. The "dims" is the name of the flow cytometry marker name listed in the data that you want to gate on. For example, when gating on singlets, we look at SSC-A and SSC-H, so our dims will be "SSC-A,SSC-H" when gating on CD4 cells, we will write "CD4." Note that the "dims" name must match exactly do the colunn names in your data. Finally include the name of the gating method that you want to use. Different gating options can be found here: http://opencyto.org/articles/HowToAutoGating.html.
 
 Read in the initial gating strategy, which gates to live lymphocytes, into a `gatingTemplate` class.
 
