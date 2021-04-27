@@ -33,7 +33,7 @@ flowset_FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>%
   cytoset_to_flowSet() 
 ```
 
-Apply this function to the 'flowSet' of gated FMO data:
+Apply the `tidy_flow_set` function to the 'flowSet' of gated FMO data to output a dataframe:
 
 ```{r}
 FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
@@ -98,6 +98,7 @@ Feature cut the data to get all of the possible populations for each file with t
 Remove FoxP3
 Remove CD69 - spreading from Sca1 makes the marker unusable
 
+The "count_calc" function at the end calculates the cell counts and percentage of cells in each sample for each population. The dataframe that is input into this function should only contain the markers that you're interesting in looking at, and should remove SSC-A, FSC-A, etc. 
 ```{r}
 all_fe <- df_all_gated %>%
   mutate(Timepoint = str_extract(filename, "D[0-9]*")) %>%

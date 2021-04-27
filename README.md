@@ -53,7 +53,8 @@ limit the data to measurements of live, singlet lymphocyte cells.
 We first want to convert the data to a “tidy data” format, to allow us
 to work with “tidyverse” tools for further analysis and visualization.
 
-Apply this function to the ‘flowSet’ of gated FMO data:
+Apply the `tidy_flow_set` function to the ‘flowSet’ of gated FMO data to
+output a dataframe:
 
 ``` r
 FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
@@ -159,7 +160,10 @@ based on the 99%.
 Remove FoxP3 (APC-A) Remove CD69 (BV510-A)- spreading from Sca1 makes
 the marker unusable
 
-Original
+The “count\_calc” function at the end calculates the cell counts and
+percentage of cells in each sample for each population. The dataframe
+that is input into this function should only contain the markers that
+you’re interesting in looking at, and should remove SSC-A, FSC-A, etc.
 
 ``` r
 all_fe <- df_all_gated %>%
@@ -196,18 +200,18 @@ all_fe <- df_all_gated %>%
          CD44 = fe(add_quantile, CD44, "CD44"),
          CD103 = fe(add_quantile, CD103, "CD103"),
          Sca1 = fe(add_quantile, Sca1, "Sca1"),
-         IL_17 = fe(add_quantile,IL_17, "IL_17"),
-         CTLA4 = fe(add_quantile,CTLA4, "CTLA4"),
-         CD27 = fe(add_quantile,CD27, "CD27"),
-         CD153 = fe(add_quantile,CD153, "CD153"),
-         KLRG1 = fe(add_quantile,KLRG1, "KLRG1"),
-         IFN = fe(add_quantile,IFN, "IFN"),
-         CD122 = fe(add_quantile,CD122, "CD122"),
-         PD1 = fe(add_quantile,PD1, "PD1"),
-         CD62L = fe(add_quantile,CD62L, "CD62L"),
-         IL_10 = fe(add_quantile,IL_10, "IL_10"),
-         CD28 = fe(add_quantile,CD28, "CD28"),
-         TNF = fe(add_quantile,TNF, "TNF")) %>%
+         IL_17 = fe(add_quantile, IL_17, "IL_17"),
+         CTLA4 = fe(add_quantile, CTLA4, "CTLA4"),
+         CD27 = fe(add_quantile, CD27, "CD27"),
+         CD153 = fe(add_quantile, CD153, "CD153"),
+         KLRG1 = fe(add_quantile, KLRG1, "KLRG1"),
+         IFN = fe(add_quantile, IFN, "IFN"),
+         CD122 = fe(add_quantile, CD122, "CD122"),
+         PD1 = fe(add_quantile, PD1, "PD1"),
+         CD62L = fe(add_quantile, CD62L, "CD62L"),
+         IL_10 = fe(add_quantile, IL_10, "IL_10"),
+         CD28 = fe(add_quantile, CD28, "CD28"),
+         TNF = fe(add_quantile, TNF, "TNF")) %>%
   count_calc()
 ```
 
