@@ -57,6 +57,9 @@ library(tibble)
 library(pheatmap)
 ```
 
+The first thing that you need to do is develop an intial gating strategy. This includes typical data cleaning normally performed on every flow cytometry sample. A typical gating strategy will first gate on "singlets" or single cells, then "lymphocytes" to remove debris and then only the live cells. Information on developing a .csv with different gating strategies can be found here: http://opencyto.org/articles/HowToWriteCSVTemplate.html
+
+Briefly, the "alias" column is what you will call each of the gating populations, for example, when gating on singlets, I'll probably want to give the alias of "singlets". The "pop" column takes in either a "+" or "-". When you want to take the positive cells, or the cells on the right side (or within) a the gate, you add a "+" here. The "parent" column lists the name of the cells that you want to gate. For example, the first parent will be "root" because  because we're gating on all of the available cells. If we gate our root cells to look at our siglets, then our next gate will use "singlets" as the parent. The "dims" is the name of the flow cytometry marker name listed in the data that you want to gate on. For example, when gating on singlets, we look at SSC-A and SSC-H, so our dims will be "SSC-A,SSC-H" when gating on CD4 cells, we will write "CD4." Note that the "dims" name must match exactly do the colunn names in your data. Finally include the name of the gating method that you want to use. Different gating options can be found here: http://opencyto.org/articles/HowToAutoGating.html.
 
 Read in the initial gating strategy, which gates to live lymphocytes, into a `gatingTemplate` class.
 
@@ -80,6 +83,7 @@ dtTemplate
 initial_gate <- gatingTemplate(ws) 
 plot(initial_gate)
 ```
+
 ### Read in the FMO data
 ```{r}
 # Identify the file names of all 20 FCS flow cytometry experiments to 
@@ -126,13 +130,14 @@ flowset_FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>%
   cytoset_to_flowSet() 
 ```
 
-Apply this function to the 'flowSet' of gated FMO data:
+Apply the `tidy_flow_set` function to the 'flowSet' of gated FMO data to output a dataframe:
 
 ```{r}
 FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
-FMO_gated_data
+
 ```
 
+Note that when you plot the FMOs here, you should see all of the FMOs that you want to use. If you don't see all of them, ensure that all ofyour filenames and column names for each of the markers matches exactly. For example, if the filename says "CD103_f" but the corresponding column name for that marker is "CD103", you need to either change the filename or column name so that they are exactly the same. 
 ```{r}
 # note that here the filename and the column marker names need to match exactly
 df_FMO_gated_data <- FMO_gated_data %>%
@@ -231,6 +236,7 @@ Feature cut the data to get all of the possible populations for each file with t
 Remove FoxP3
 Remove CD69 - spreading from Sca1 makes the marker unusable
 
+The "count_calc" function at the end calculates the cell counts and percentage of cells in each sample for each population. The dataframe that is input into this function should only contain the markers that you're interesting in looking at, and should remove SSC-A, FSC-A, etc. 
 ```{r}
 all_fe <- df_all_gated %>%
   mutate(Timepoint = str_extract(filename, "D[0-9]*")) %>%
@@ -311,14 +317,15 @@ After identifying all phenotypes, we can filter the data to see the ones that we
 ```{r}
 # view the specific cell phenotypes we're interested in
 sample_populations <- all_fe %>%
-  dplyr::filter(CD3 == 1 & percentage > 0.5) %>%
+  dplyr::filter(CD3 == 1 & percentage > 1) %>%
   filter_pops() 
 
 sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe, marker_vector = order_of_markers)
 ```
 
 Plot sample populations
-```{r fig.width = 4, fig.height = 6}
+```{r fig.width = 2, fig.height = 4}
+
 simple_pop_df <- sample_populations %>%
   column_to_rownames("population") 
 
@@ -330,6 +337,21 @@ simple_pop_df %>%
              cellwidth = 15, cellheight = 15, angle_col = 45, 
              color = c("#3F4788FF", "#56C667FF"), cutree_rows = 2, legend = FALSE)
 
+```
+
+Plot sample populations
+```{r fig.width = 4, fig.height = 6}
+simple_pop_df <- sample_populations %>%
+  column_to_rownames("population") 
+
+
+simple_pop_df %>%
+  dplyr::select(all_of(order_of_markers)) %>%
+  mutate_all(~convert_factor_numeric(.)) %>%
+    pheatmap::pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
+             labels_row = rownames(simple_pop_df),
+             cellwidth = 15, cellheight = 15, angle_col = 45, 
+             color = c("#3F4788FF", "#56C667FF"), cutree_rows = 2, legend = FALSE)
 
 ```
 

@@ -14,6 +14,289 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(cytotypr)
+The goal of cytotypr is to identify flow cytometry cell populations efficiently using either Fluorescent Minus One controls (FMOs) or distinct population differences.
+
+## Installation
+
+You can install the development version of cytotypr from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("aef1004/cytotypr")
 ```
+## Basic Example
+
+This is a basic example which shows you how to obtain basic results and plots for flow cytometry data using FMOs:
+
+```{r example}
+library(cytotypr)
+## basic example code
+```
+
+List of additional packages needed to run this example
+```{r message = FALSE}
+library(openCyto)
+library(ncdfFlow)
+library(flowWorkspace)
+library(data.table)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(tibble)
+library(ggplot2)
+library(readxl)
+library(broom)
+library(purrr)
+```
+
+The data that is being used in this example is from the paper "Cyto-feature engineering...." I have taken a few rows for analysis of one of the FMOs and one of the samples. The samples are from the lungs of C57BL/6 mice that were either sham-vaccinated or vaccinated with an *Mycobacterium tuberculosis* vaccine, Bacillus Calmette–Guérin (BCG). 
+
+```{r}
+# CD3 FMO flowframe
+CD3_flowframe <- flowset_FMO_gated_data[[6]]
+
+exprs(CD3_flowframe) <- exprs(CD3_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
+
+write.FCS(CD3_flowframe, "../inst/extdata/simple_example/CD3_FMO.fcs")
+
+# CD4 FMO flowframe
+CD4_flowframe <- flowset_FMO_gated_data[[7]]
+
+exprs(CD4_flowframe) <- exprs(CD4_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
+
+write.FCS(CD4_flowframe, "../inst/extdata/simple_example/CD4_FMO.fcs")
+
+# CD8 FMO flowframe
+CD8_flowframe <- flowset_FMO_gated_data[[11]]
+
+exprs(CD8_flowframe) <- exprs(CD8_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
+
+write.FCS(CD8_flowframe, "../inst/extdata/simple_example/CD8_FMO.fcs")
+
+# sample
+sample_flowframe <- flowset_gated_data[[1]]
+
+exprs(sample_flowframe) <- exprs(sample_flowframe)[1:10000, c(2, 3, 4, 5, 8, 10, 16, 26)]
+
+write.FCS(sample_flowframe, "../inst/extdata/simple_example/sample.fcs")
+```
+
+The first thing that you need to do is develop an intial gating strategy. This includes typical data cleaning normally performed on every flow cytometry sample. A typical gating strategy will first gate on "singlets" or single cells, then "lymphocytes" to remove debris and then only the live cells. Information on developing a .csv with different gating strategies can be found here: http://opencyto.org/articles/HowToWriteCSVTemplate.html
+
+Briefly, the "alias" column is what you will call each of the gating populations, for example, when gating on singlets, I'll probably want to give the alias of "singlets". The "pop" column takes in either a "+" or "-". When you want to take the positive cells, or the cells on the right side (or within) a the gate, you add a "+" here. The "parent" column lists the name of the cells that you want to gate. For example, the first parent will be "root" because  because we're gating on all of the available cells. If we gate our root cells to look at our siglets, then our next gate will use "singlets" as the parent. The "dims" is the name of the flow cytometry marker name listed in the data that you want to gate on. For example, when gating on singlets, we look at SSC-A and SSC-H, so our dims will be "SSC-A,SSC-H" when gating on CD4 cells, we will write "CD4." Note that the "dims" name must match exactly do the colunn names in your data. Finally include the name of the gating method that you want to use. Different gating options can be found here: http://opencyto.org/articles/HowToAutoGating.html.
+
+Read in the initial gating strategy, which gates to live lymphocytes, into a `gatingTemplate` class.
+
+```{r}
+# Identify the file with the gating strategy 
+ws <- list.files("../inst/extdata/", 
+                 pattern = "gating_strategy.csv", 
+                 full = TRUE)
+ws
+
+```
+
+```{r}
+# View this template
+dtTemplate <- fread(ws)
+dtTemplate
+```
+
+```{r message = FALSE, warning = FALSE}
+# Read in the gating strategy to a 'gatingTemplate' object
+initial_gate <- gatingTemplate(ws) 
+plot(initial_gate)
+```
+
+### Read in the FMO data
+```{r}
+# Identify the file names of all 20 FCS flow cytometry experiments to 
+# read in. 
+FMO_fcsFiles <- list.files("../inst/extdata/simple_example/", pattern = "FMO", full = TRUE)
+FMO_fcsFiles
+
+```
+
+```{r message = FALSE}
+# Read these files into a 'ncdfFlowSet' object. This will taken a minute
+# or so to run. The resulting 'ncdfFlowset' object contains row names with the 
+# individual samples and column names with the markers/parameters used in the flow cytometer.
+
+ncfs_FMO <- read.ncdfFlowSet(FMO_fcsFiles, channel_alias = data.frame(alias = c("Zombie Nir-A"), channels = c("Zombie_NIR-A, Zombie NIR-A, Zombie Nir-A"))) 
+
+ncfs_FMO
+```
+
+Apply the initial gating to filter the data to only measurements on live lymphocyte cells.
+
+```{r}
+# Convert to a 'GatingSet' object, so we can apply the initial gating to this data.
+gs_FMO <- GatingSet(ncfs_FMO)
+gs_FMO
+```
+
+```{r fig.height = 8, fig.width = 4}
+# Apply the initial gating to this data, to filter to only measurements
+# on live lymphocyte cells. This may take a minute.
+gt_gating(initial_gate, gs_FMO)
+
+# You can plot the results of this gating with `autoplot`. For example, to plot
+# the gating for the first sample, run:
+ggcyto::autoplot(gs_FMO[[1]])
+```
+
+## Convert data to "tidy data" format
+
+Now that the initial gating has been applied, to limit the data to measurements oflive, singlet lymphocyte cells, we convert the data to a "tidy data" format, to allow us to work with "tidyverse" tools for further analysis and visualization.
+
+```{r}
+# Pull out the data from the 'live' node of the gating set (the last node
+# in the initial gating strategy).
+flowset_FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>% 
+  cytoset_to_flowSet() 
+```
+
+Apply the `tidy_flow_set` function to the 'flowSet' of gated FMO data to output a dataframe:
+
+```{r}
+FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
+
+```
+
+Note that when you plot the FMOs here, you should see all of the FMOs that you want to use. If you don't see all of them, ensure that all ofyour filenames and column names for each of the markers matches exactly. For example, if the filename says "CD103_f" but the corresponding column name for that marker is "CD103", you need to either change the filename or column name so that they are exactly the same. 
+```{r}
+# note that here the filename and the column marker names need to match exactly
+df_FMO_gated_data <- FMO_gated_data %>%
+  select(ends_with("-A"), -`FSC-A`, `SSC-A`, filename) %>%
+  dplyr::rename(`CD3` = "Alexa Fluor 532-A",
+                `CD4` = "BV480-A",
+                `CD8` = "BV570-A")  %>%
+   na.omit()%>%
+  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  mutate(filename = str_replace(filename, "_FMO.fcs", ""))
+
+FMO_filtered_data <- filter_FMO(df_FMO_gated_data)
+
+add_quantile <- get_99(FMO_filtered_data)
+
+plot_FMOs(FMO_filtered_data, add_quantile)
+```
+
+
+### Gating the sample data
+
+I checked that all D30, D60, and D90 samples have Zombie and will run all the way through the gating when separated by day. Looking at the data, some of them are labeled Zombie NIR-A and Zombie Nir-A which means that they are not recognized as the same. - D90 has uncapitalized. I will need to read them in separately and then rename one of the two so that the cases match
+
+```{r warning=FALSE, fig.height=1.5, fig.width=1.5}
+
+fcsFiles <- list.files("../inst/extdata/simple_example", pattern = "sample", full = TRUE)
+
+# ncdfFlowset object contains row names with the individual samples and column names with the markers/parameters used in the flow cytometer
+ncfs <- read.ncdfFlowSet(fcsFiles, channel_alias = data.frame(alias = c("Zombie Nir-A"), channels = c("Zombie_NIR-A, Zombie NIR-A, Zombie Nir-A"))) 
+
+# apply gating set
+gs <- GatingSet(ncfs)
+
+# gate the samples
+gt_gating(initial_gate, gs)
+
+# View the gates
+autoplot(gs[[1]])
+
+```
+
+Pull out the gated data
+
+Want to change gated_flowset to flowset_gated_data
+```{r}
+# Pull out the gated data - could potentially add to the function below
+flowset_gated_data <- gs_pop_get_data(gs, "live") %>% 
+  cytoset_to_flowSet() 
+
+# tidy the flowset and convert to a dataframe
+df_all_gated <-  tidy_flow_set(flowset_gated_data) 
+
+unique(df_all_gated$filename)
+```
+
+## Feature engineer the data
+
+Feature cut the data to get all of the possible populations for each file with the cell count and number of cells. Feature engineering is based on the 99%.
+
+The "count_calc" function at the end calculates the cell counts and percentage of cells in each sample for each population. The dataframe that is input into this function should only contain the markers that you're interesting in looking at, and should remove SSC-A, FSC-A, etc. 
+```{r}
+all_fe <- df_all_gated %>%
+  select(ends_with("-A"), -`FSC-A`, filename) %>%
+  dplyr::rename(`CD3` = "Alexa Fluor 532-A",
+                `CD4` = "BV480-A",
+                `CD8` = "BV570-A") %>%
+  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  mutate(CD3 = fe(add_quantile, CD3, "CD3"),
+         CD4 = fe(add_quantile, CD4, "CD4"),
+         CD8 = fe(add_quantile, CD8, "CD8")) %>%
+  select(-`Zombie Nir-A`,  -`SSC-A`) %>%
+  count_calc()
+
+```
+
+Visulatizations
+
+Initial identification of populations plot
+
+We first want to view all of the different cell phenotypes within the data
+
+```{r}
+# this is the order of markers that we want for all of our plots
+order_of_markers <- c("CD3", "CD4", "CD8")
+
+# to view all of the possible combinations
+total_phenotypes <- filter_for_total_pheno(all_fe, marker_order = order_of_markers)
+
+heatmap_all_pheno(total_phenotypes)
+
+# gives the total number of populations
+nrow(total_phenotypes) 
+```
+
+
+After identifying all phenotypes, we can filter the data to see the ones that we're interested in, for example, CD3+ cells that constitute >0.5% of total live leukocytes in a sample.
+
+```{r}
+# view the specific cell phenotypes we're interested in
+sample_populations <- all_fe %>%
+  dplyr::filter(CD3 == 1 & percentage > 1) %>%
+  filter_pops() 
+
+sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe, 
+                                                     marker_vector = order_of_markers)
+```
+
+Plot sample populations
+```{r}
+
+simple_pop_df <- sample_populations %>%
+  column_to_rownames("population") 
+
+simple_pop_df %>%
+  dplyr::select(all_of(order_of_markers)) %>%
+  mutate_all(~convert_factor_numeric(.)) %>%
+    pheatmap::pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
+             labels_row = rownames(simple_pop_df),
+             cellwidth = 15, cellheight = 15, angle_col = 45, 
+             color = c("#3F4788FF", "#56C667FF"), cutree_rows = 2, legend = FALSE)
+
+```
+
+
+Plot percentages
+```{r}
+
+sample_populations_all_groups %>%
+  ggplot(aes(x = filename, y = percentage, fill = population)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~population) +
+  ylab("Average Percent of Total Live Leukocytes") 
+  
+```
+
+
