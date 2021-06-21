@@ -135,6 +135,7 @@ Apply the `tidy_flow_set` function to the 'flowSet' of gated FMO data to output 
 ```{r}
 FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
 
+FMO_gated_data
 ```
 
 Note that when you plot the FMOs here, you should see all of the FMOs that you want to use. If you don't see all of them, ensure that all ofyour filenames and column names for each of the markers matches exactly. For example, if the filename says "CD103_f" but the corresponding column name for that marker is "CD103", you need to either change the filename or column name so that they are exactly the same. 
@@ -170,8 +171,10 @@ df_FMO_gated_data <- FMO_gated_data %>%
   
 FMO_filtered_data <- filter_FMO(df_FMO_gated_data)
 
+# dataframe of the cutoffs for each of the FMOs
 add_quantile <- get_99(FMO_filtered_data)
 
+# check that each of the FMOs is included in this plot
 plot_FMOs(FMO_filtered_data, add_quantile)
 ```
 
@@ -227,6 +230,9 @@ flowset_gated_data <- gs_pop_get_data(gs, "live") %>%
 df_all_gated <-  tidy_flow_set(flowset_gated_data) 
 
 unique(df_all_gated$filename)
+
+df_all_gated
+
 ```
 
 Feature engineer the data
@@ -285,7 +291,7 @@ all_fe <- df_all_gated %>%
          IL_10 = fe(add_quantile,IL_10, "IL_10"),
          CD28 = fe(add_quantile,CD28, "CD28"),
          TNF = fe(add_quantile,TNF, "TNF")) %>%
-  select(-`Zombie Nir-A`, -`AF-A`, -`SSC-A`, -FoxP3, -CD69) %>%
+  select(-`Zombie Nir-A`, -`AF-A`, -`SSC-A`, -FoxP3, -CD69) %>% # any column that doesn't have a 0 or 1 must be removed here (Except experimental/group names)
   count_calc()
 
 ```
@@ -365,56 +371,31 @@ superheat(corr,  row.title = "Populations", column.title = "Populations")
 
 ```
 
-Time Series Plot
-```{r fig.width = 4, fig.height - 3}
-color_for_facets <- phenotype_data %>%
-  select(lineage) %>%
-  rownames_to_column("population") %>%
-  mutate(col = ifelse(lineage == "Double Negative", "darkturquoise", 
-                      ifelse(lineage == "T Helper", "plum3",
-                             ifelse(lineage == "Cytotoxic T", "hotpink", 
-                                    ifelse(lineage == "Double Positive", "orange", "brown")))))
+Time Series Plot 
+```{r fig.width = 5}
 
 # take the data for filtered populations and rename so that plots are pretty
+
 pops_for_plots_average <- sample_populations_all_groups %>%
-  separate(filename, into = c("Timepoint", "Group", "Mouse"), sep = "_") %>%
+  tidyr::separate(filename, into = c("Timepoint", "Group", "Number"),
+                  sep = "_") %>%
   dplyr::group_by(population, Timepoint, Group) %>%
-  dplyr::mutate(average_percent = mean(percentage)) %>%
-  select(-percentage, -Mouse) %>%
-  ungroup() %>%
-  unique() %>%
-  dplyr::mutate(Group = str_replace(Group, "1", "PBS"),
-         Group = str_replace(Group, "2", "BCG")) %>%
-  dplyr::mutate(Timepoint = str_replace(Timepoint, "D30", "30"),
-         Timepoint = str_replace(Timepoint, "D60", "60"),
-         Timepoint = str_replace(Timepoint, "D90", "90")) %>%
-  mutate(Group = str_replace(Group, "PBS", "Control"),
-         Group = str_replace(Group, "BCG", "Vaccinated"))
+  dplyr::summarise(average_percent = mean(percentage)) %>%
+  dplyr::mutate(Group = str_replace(Group, "1", "Control"),
+         Group = str_replace(Group, "2", "Vaccinated")) %>%
+  dplyr::mutate(Timepoint = str_extract(Timepoint, "[0-9].+")) %>%
+  dplyr::mutate(pop = as.numeric(str_extract(population, "[:digit:]+"))) 
 
-facets_for_timeseries <- left_join(pops_for_plots_average, color_for_facets, by = "population") 
 
-# convert populations to factor to put in order for the plot
-facets_for_timeseries$population <-  factor(facets_for_timeseries$population, 
-                                    levels = paste0("Pop", c(1:length(unique(facets_for_timeseries$population)))))
-
-ggplot(facets_for_timeseries, aes(x = factor(Timepoint, levels = c("30", "60", "90")),
-                                 y = average_percent, group = Group, color = Group)) +
-  geom_rect(aes(fill = col),xmin = -Inf,xmax = Inf,
-            ymin = -Inf,ymax = Inf, alpha = 0.2) +
+ggplot(pops_for_plots_average, aes(x = Timepoint, y = average_percent, 
+                                   group = Group, color = Group)) +
   scale_fill_identity() +
   geom_point() +
   geom_line() +
-  facet_wrap("population", scales = "free", ncol = 7) +
+  facet_wrap("pop",  scales = "free", ncol = 7, labeller = label_both) +
   xlab("Days Post-Infection") +
   ylab("Average Percent of Total Live Leukocytes") +
-  scale_color_manual(values = c("black", "white")) +
-  theme_gray() +
-    theme(axis.text.x = element_text(angle = 45, size = 13, hjust = 1),
-        axis.text.y = element_text(size = 13),
-        strip.text.x = element_text(size = 10),
-        axis.title = element_text(size = 17),
-        title = element_text(size = 20),
-        legend.text = element_text(size=18),
-        legend.key.size = unit(1.5, "line"))
+  theme_gray() 
+
 ```
 
