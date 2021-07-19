@@ -345,23 +345,6 @@ simple_pop_df %>%
 
 ```
 
-Plot sample populations
-```{r fig.width = 4, fig.height = 6}
-simple_pop_df <- sample_populations %>%
-  column_to_rownames("population") 
-
-
-simple_pop_df %>%
-  dplyr::select(all_of(order_of_markers)) %>%
-  mutate_all(~convert_factor_numeric(.)) %>%
-    pheatmap::pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
-             labels_row = rownames(simple_pop_df),
-             cellwidth = 15, cellheight = 15, angle_col = 45, 
-             color = c("#3F4788FF", "#56C667FF"), cutree_rows = 2, legend = FALSE)
-
-```
-
-
 Correlation plot
 
 ```{r fig.height = 3, fig.width=3}
