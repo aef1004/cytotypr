@@ -5,23 +5,42 @@ author: "Amy Fox"
 date: "Last edited: 2021-09-3"
 ---
 
+
+Note that descriptions are directly copied from the paper:"Cyto-Feature Engineering: A Pipeline for Flow Cytometry Analysis to Uncover Immune Populations and Associations with Disease"
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Overview
-Descriptions of the analysis method can be found here:
-Descriptions of the flow cytometry staining can be found here:
+
+Flow cytometers can now analyze up to 50 parameters (antigens, size, granularity, cytokines, transcription factors, etc.) per cell and millions of cells per sample1. Conventional flow cytometry data analysis uses manual gating of cells on 2D plots to distinguish populations 1–2 dimensions at a time; this makes it both subjective and time consuming (up to 15 hours per experiment)2. Better methods are therefore critically needed to take full advantage of this powerful technology. Researchers have responded with open-source tools, including tools for automated gating to remove user input bias (e.g., openCyto) and tools to identify and cluster cell populations concurrently using all parameters (e.g., FlowSOM, t-SNE)3,4,5. While powerful advances, these new tools lack a straightforward way to integrate data from important technical controls or to compare resulting cell populations with other experimental measurements. Work is ongoing across several research groups to extend existing open-source tools to address some of these gaps. CytoCompare and cytofast, for example, focus on data analysis after clustering6,7. However, few tools exist that allow users to incorporate the many flow cytometry controls required for good data acquisition and analysis, and the output from the available clustering tools are often difficult for immunologists to interpret.
+
+We have developed an end-to-end method for analyzing flow cytometry data that aims to address these limitations. For flow cytometry data, a parameter often represents a biologically binary phenomenon—that a marker is present or missing on a cell. While variation exists in the flow cytometry measurements for each parameter within cells in each binary group, that within-group variation is often uninformative noise. Our pipeline leverages this underlying biology—it uses feature engineering to create binary features for whether each cell has a positive or negative value for each marker. It does this using either external thresholds identified based on Fluorescence Minus One controls (FMOs) or the availability to separate the data based on clear population separation. The pipeline therefore identifies cell populations based on positive/negative combinations of each flow cytometry marker, a description that is readily interpretable by immunologists.
+
+In four main steps, the pipeline: (1) cleans the data for live, single cells; (2) feature engineers the data based on FMO cutoffs or population separation; (3) analyzes the flow cytometry samples for all populations present in the sample and filters to populations above a population size threshold; (4) visualizes resulting populations through heatmaps of cell phenotypes and time series plots within experimental groups. Furthermore, it allows the use of statistical testing to identify cell populations associated with other experimental measurements (e.g., disease burden as measured through colony forming units) and novel populations induced by any experimental or clinical condition. All steps in the pipeline are modular, allowing each to be modified or replaced depending on the research question and features of the experimental data. As a case study, we illustrate the pipeline on a study involving Mycobacterium bovis Bacillus Calmette-Guérin (BCG)-vaccinated or control (Phosphate buffered saline (PBS)-injected) C57BL/6 mice infected with Mycobacterium tuberculosis (M. tuberculosis).
+
+
+Descriptions of the analysis method can be found here: https://www.nature.com/articles/s41598-020-64516-0 
 
 # Laboratory description
 
+The laboratory procedure used for staining the cells, ensuring proper controls, and acquiring the data can be found here:
+ https://currentprotocols.onlinelibrary.wiley.com/doi/10.1002/cpcy.74
+
+In a typical experiment
+
 # Method Limitations
 
-- Need good FMOs
+While this pipeline has many advantages, there are several limitations to consider.  
+
+This analysis pipeline relies on high quality flow cytometry methodology, and/or FMO samples, as well as, strong panel design. Spillover from other channels can greatly impact the analysis, so researchers must ensure that the controls are prepared correctly.
 
 # Data description
 
-# Reading data into R
+Flow cytometers use a standardized file format for outputting data, the .fcs file, which includes cell measurements, metadata describing data collection, and the Median Fluorescent Intensities (MFIs) of fluorescently-conjugated antibodies or fluorescent probes. Typically, a different .fcs file is created for each sample.
 
+# Reading data into R
+Multiple .fcs files generated from an experiment can be read into R and manipulated as a “flowSet” object9. Our pipeline begins by reading experimental data into a “flowSet” object.
 
 # Exploring the data and quality checks
