@@ -1,0 +1,27 @@
+---
+title: "Protocol: Flow Cytometry Cell Analysis"
+output: html_document
+author: "Amy Fox"
+date: "Last edited: 2021-09-3"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+Descriptions of the analysis method can be found here:
+Descriptions of the flow cytometry staining can be found here:
+
+# Laboratory description
+
+# Method Limitations
+
+- Need good FMOs
+
+# Data description
+
+# Reading data into R
+
+
+# Exploring the data and quality checks
