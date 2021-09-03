@@ -1,5 +1,7 @@
 #' A FlowSet containing all of the FMO samples and measured data
 #'
+#' Description of data
+#'
 #' @format A flowSet with 25 experiments (samples) containing all of the measured data:
 #' \describe{
 #'   \item{SSC-A}{ numeric: the sidescatter, or complexity, of each cell}
