@@ -41,6 +41,86 @@ This analysis pipeline relies on high quality flow cytometry methodology, and/or
 Flow cytometers use a standardized file format for outputting data, the .fcs file, which includes cell measurements, metadata describing data collection, and the Median Fluorescent Intensities (MFIs) of fluorescently-conjugated antibodies or fluorescent probes. Typically, a different .fcs file is created for each sample.
 
 # Reading data into R
-Multiple .fcs files generated from an experiment can be read into R and manipulated as a “flowSet” object9. Our pipeline begins by reading experimental data into a “flowSet” object.
+
+Multiple .fcs files generated from an experiment can be read into R and manipulated as an “ncdfFlowSet” object. Our pipeline begins by reading experimental data into an “ncdfFlowSet” object.
+
+We start by identifying the folder where all of our FMO files are saved.
+```{r}
+# Identify the file names of all 20 FCS flow cytometry experiments to read in. 
+FMO_fcsFiles <- list.files("../inst/extdata/FMOs", full = TRUE)
+FMO_fcsFiles
+```
+
+We then reference the location of the saved files and read in the files creating an “ncdfFlowSet” object. Note that this may take a minute or so to run.
+
+The best practice for acquiring samples means naming marker channels the exact same each time an experiment is performed. However, if the samples contain multiple aliases for the same marker, we can use the `channel_alias` argument in the `read.ncdfFlowSet` function to standardize the naming. For example, in some samples, one marker channel is labeled "Zombie Nir-A", whereas in other samples, the same marker channel is labeled "Zombie_NIR-A" or "Zombie NIR-A." We must standardize the naming of the marker channels here or they will not be recognized as the same channel later in the analysis. Note that letter case matters.
+
+
+```{r message = FALSE, warning = FALSE}
+library(ncdfFlow)
+
+ncfs_FMO <- read.ncdfFlowSet(FMO_fcsFiles, 
+                             channel_alias = data.frame(alias = c("Zombie Nir-A"),
+                                                        channels = c("Zombie_NIR-A, 
+                                                                     Zombie NIR-A, 
+                                                                     Zombie Nir-A"))) 
+```
+
+Here is a description of the 'ncdfFlowSet' object.
+
+```{r echo = FALSE}
+ncfs_FMO
+```
+
+The resulting 'ncdfFlowset' object contains row names with the individual samples and column names with the markers/parameters used in the flow cytometer. This 'ncdfFlowset' can be indexed in a few ways. 
+
+The following indexing pulls out the data for the first sample.
+```{r}
+ncfs_FMO[1]
+```
+
+**Check**
+The following indexing pulls out the flowframe and the dataframe for the first sample. The dataframe contains the data about each of the marker channels 
+```{r}
+head(ncfs_FMO[[1]])
+```
+
+# Data cleaning and initial gating
+
+After reading in our data, we then want to perform some typical data cleaning steps normally performed on every flow cytometry sample. A typical gating strategy will first gate on "singlets" or single cells, then "lymphocytes" to remove debris and then only the live cells. Information on developing a .csv with different gating strategies can be found here: http://opencyto.org/articles/HowToWriteCSVTemplate.html
+
+Briefly, the "alias" column is what you will call each of the gating populations, for example, when gating on singlets, I'll probably want to give the alias of "singlets". The "pop" column takes in either a "+" or "-". When you want to take the positive cells, or the cells on the right side (or within) a the gate, you add a "+" here. The "parent" column lists the name of the cells that you want to gate. For example, the first parent will be "root" because  because we're gating on all of the available cells. If we gate our root cells to look at our siglets, then our next gate will use "singlets" as the parent. The "dims" is the name of the flow cytometry marker name listed in the data that you want to gate on. For example, when gating on singlets, we look at SSC-A and SSC-H, so our dims will be "SSC-A,SSC-H" when gating on CD4 cells, we will write "CD4." Note that the "dims" name must match exactly do the colunn names in your data. Finally include the name of the gating method that you want to use. Different gating options can be found here: http://opencyto.org/articles/HowToAutoGating.html.
+
+**Check: Include info on why we use wider_gate and how I chose the gating_arg**
+
+```{r}
+# Identify the file with the gating strategy 
+ws <- list.files("../inst/extdata/", 
+                 pattern = "gating_strategy.csv", 
+                 full = TRUE)
+```
+
+We can view the initial gating strategy with the `fread` function. Here is what the data looks like once it has been read in.
+```{r}
+library(data.table)
+# Read in the template
+dtTemplate <- fread(ws)
+
+dtTemplate
+```
+In this dataframe, each row in the .csv represents a different gating step.
+
+We then read in the gating strategy to a `gatingTemplate` object.
+```{r message = FALSE, warning = FALSE}
+library(openCyto)
+initial_gate <- gatingTemplate(ws) 
+```
+
+The gating strategy can then be viewed with the `plot` function.
+```{r warning = FALSE}
+plot(initial_gate)
+```
+This shows that we will take all of the cells (root), gate on singlets using a `singletGate`, then gate the lymphocytes using a `mindensity` gate, and finally gate on live cells using a `mindensity` gate.
 
 # Exploring the data and quality checks
+
