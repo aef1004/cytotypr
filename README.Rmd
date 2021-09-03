@@ -166,7 +166,7 @@ all_fe <- df_all_gated %>%
   count_calc()
 ```
 
-# Visulatizations
+# Visualizations
 
 Initial identification of populations plot
 
