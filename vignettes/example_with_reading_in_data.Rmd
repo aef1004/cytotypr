@@ -29,9 +29,16 @@ You can install the development version of cytotypr from [GitHub](https://github
 devtools::install_github("aef1004/cytotypr")
 ```
 
-There are a few packages that will need to be downloaded from CRAN:
+There are a few additional packages that will need to be downloaded from CRAN:
 ```{r}
-install.packages("data.table", "dplyr", "stringr", "scales", "tidyr", "superheat", "tibble", "pheatmap")
+if (!require("data.table")) install.packages("data.table")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("stringr")) install.packages("stringr")
+if (!require("scales")) install.packages("scales")
+if (!require("tidyr")) install.packages("tidyr")
+if (!require("superheat")) install.packages("superheat")
+if (!require("tibble")) install.packages("tibble")
+if (!require("pheatmap")) install.packages("pheatmap")
 ```
 
 Other packages will need to be downloaded from bioconductor:
@@ -39,10 +46,11 @@ Other packages will need to be downloaded from bioconductor:
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-BiocManager::install("openCyto")
-BiocManager::install("ncdfFlow")
-BiocManager::install("flowWorkspace")
-BiocManager::install("ggcyto")
+if (!require("openCyto")) BiocManager::install("openCyto")
+if (!require("ncdfFlow")) BiocManager::install("ncdfFlow")
+if (!require("flowWorkspace")) BiocManager::install("flowWorkspace")
+if (!require("ggcyto")) BiocManager::install("ggcyto")
+
 ```
 
 ## Example
