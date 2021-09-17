@@ -28,6 +28,23 @@ You can install the development version of cytotypr from [GitHub](https://github
 # install.packages("devtools")
 devtools::install_github("aef1004/cytotypr")
 ```
+
+There are a few packages that will need to be downloaded from CRAN:
+```{r}
+install.packages("data.table", "dplyr", "stringr", "scales", "tidyr", "superheat", "tibble", "pheatmap")
+```
+
+Other packages will need to be downloaded from bioconductor:
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("openCyto")
+BiocManager::install("ncdfFlow")
+BiocManager::install("flowWorkspace")
+BiocManager::install("ggcyto")
+```
+
 ## Example
 
 This is an full example which shows you how to obtain basic results and plots for flow cytometry data using FMOs:
