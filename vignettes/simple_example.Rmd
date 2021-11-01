@@ -33,6 +33,32 @@ library(cytotypr)
 ## basic example code
 ```
 
+There are a few additional packages that will need to be downloaded from CRAN:
+```{r}
+if (!require("data.table")) install.packages("data.table")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("stringr")) install.packages("stringr")
+if (!require("tidyr")) install.packages("tidyr")
+if (!require("tibble")) install.packages("tibble")
+if (!require("readxl")) install.packages("readxl")
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("broom")) install.packages("broom")
+if (!require("purrr")) install.packages("purrr")
+if (!require("pheatmap")) install.packages("pheatmap")
+```
+
+Other packages will need to be downloaded from bioconductor:
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+if (!require("openCyto")) BiocManager::install("openCyto")
+if (!require("ncdfFlow")) BiocManager::install("ncdfFlow")
+if (!require("flowWorkspace")) BiocManager::install("flowWorkspace")
+
+```
+
+
 List of additional packages needed to run this example
 ```{r message = FALSE}
 library(openCyto)
@@ -47,6 +73,7 @@ library(ggplot2)
 library(readxl)
 library(broom)
 library(purrr)
+library(pheatmap)
 ```
 
 The data that is being used in this example is from the paper "Cyto-feature engineering...." I have taken a few rows for analysis of one of the FMOs and one of the samples. The samples are from the lungs of C57BL/6 mice that were either sham-vaccinated or vaccinated with an *Mycobacterium tuberculosis* vaccine, Bacillus Calmette–Guérin (BCG). 

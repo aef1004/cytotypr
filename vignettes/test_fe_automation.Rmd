@@ -1,6 +1,10 @@
 ---
 title: "test_fe_automation"
-output: html_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{simple_example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 https://stackoverflow.com/questions/49816669/how-to-use-map-from-purrr-with-dplyrmutate-to-create-multiple-new-columns-base

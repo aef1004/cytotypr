@@ -1,4 +1,3 @@
-# cytotypr
 
 The goal of cytotypr is to identify flow cytometry cell populations
 efficiently using either Fluorescent Minus One controls (FMOs) or
@@ -61,30 +60,29 @@ output a dataframe:
 FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
 FMO_gated_data
 #> # A tibble: 417,910 x 49
-#>    filename  Time `SSC-H` `SSC-A` `FSC-H` `FSC-A` `BV421-H` `Pacific Blue-H`
-#>    <chr>    <dbl>   <dbl>   <dbl>   <dbl>   <dbl>     <dbl>            <dbl>
-#>  1 CD103.f…   130  105692  1.26e5  354442  6.45e5     -58.8             295.
-#>  2 CD103.f…   137  270246  3.16e5 1094791  1.59e6   -6837.              181.
-#>  3 CD103.f…   139  326197  3.77e5 1312044  1.80e6   -6375.             2438.
-#>  4 CD103.f…   149   74523  8.52e4  295947  5.57e5     285.              542.
-#>  5 CD103.f…   159  103797  1.10e5  293302  4.86e5    -419.              250.
-#>  6 CD103.f…   215  188622  2.20e5  355468  5.51e5    -589.             1265.
-#>  7 CD103.f…   233  275485  3.18e5 1264605  1.57e6   -3984.              770.
-#>  8 CD103.f…   242  262851  3.03e5  931615  1.20e6   -5463.             -680.
-#>  9 CD103.f…   501  205731  3.60e5  578193  6.76e5    -782.              865.
-#> 10 CD103.f…   590 1510416  2.11e6 1396843  1.87e6  -56700.              192.
-#> # … with 417,900 more rows, and 41 more variables: `BV480-H` <dbl>,
-#> #   `BV510-H` <dbl>, `BV570-H` <dbl>, `BV605-H` <dbl>, `BV650-H` <dbl>,
-#> #   `BV711-H` <dbl>, `BV785-H` <dbl>, `BB515-H` <dbl>, `Alexa Fluor
-#> #   532-H` <dbl>, `PE-H` <dbl>, `PE-Dazzle594-H` <dbl>, `PE-Cy5-H` <dbl>,
-#> #   `PE-Cy5.5-H` <dbl>, `PerCP-eFluor 710-H` <dbl>, `PE-Cy7-H` <dbl>,
-#> #   `APC-H` <dbl>, `APC-R700-H` <dbl>, `APC-Fire 750-H` <dbl>, `AF-H` <dbl>,
-#> #   `BV421-A` <dbl>, `Pacific Blue-A` <dbl>, `BV480-A` <dbl>, `BV510-A` <dbl>,
-#> #   `BV570-A` <dbl>, `BV605-A` <dbl>, `BV650-A` <dbl>, `BV711-A` <dbl>,
-#> #   `BV785-A` <dbl>, `BB515-A` <dbl>, `Alexa Fluor 532-A` <dbl>, `PE-A` <dbl>,
-#> #   `PE-Dazzle594-A` <dbl>, `PE-Cy5-A` <dbl>, `PE-Cy5.5-A` <dbl>, `PerCP-eFluor
-#> #   710-A` <dbl>, `PE-Cy7-A` <dbl>, `APC-A` <dbl>, `APC-R700-A` <dbl>,
-#> #   `APC-Fire 750-A` <dbl>, `Zombie Nir-A` <dbl>, `AF-A` <dbl>
+#>    filename   Time `SSC-H`  `SSC-A` `FSC-H`  `FSC-A` `BV421-H` `Pacific Blue-H`
+#>    <chr>     <dbl>   <dbl>    <dbl>   <dbl>    <dbl>     <dbl>            <dbl>
+#>  1 CD103.fcs   130  105692  126259.  354442  645303.     -58.8             295.
+#>  2 CD103.fcs   137  270246  315833. 1094791 1587586.   -6837.              181.
+#>  3 CD103.fcs   139  326197  377253. 1312044 1802283.   -6375.             2438.
+#>  4 CD103.fcs   149   74523   85250.  295947  557216.     285.              542.
+#>  5 CD103.fcs   159  103797  110015.  293302  485668.    -419.              250.
+#>  6 CD103.fcs   215  188622  219861.  355468  550662.    -589.             1265.
+#>  7 CD103.fcs   233  275485  317618. 1264605 1573930.   -3984.              770.
+#>  8 CD103.fcs   242  262851  303086   931615 1199019.   -5463.             -680.
+#>  9 CD103.fcs   501  205731  360208.  578193  675543.    -782.              865.
+#> 10 CD103.fcs   590 1510416 2105650. 1396843 1871814.  -56700.              192.
+#> # … with 417,900 more rows, and 41 more variables: BV480-H <dbl>,
+#> #   BV510-H <dbl>, BV570-H <dbl>, BV605-H <dbl>, BV650-H <dbl>, BV711-H <dbl>,
+#> #   BV785-H <dbl>, BB515-H <dbl>, Alexa Fluor 532-H <dbl>, PE-H <dbl>,
+#> #   PE-Dazzle594-H <dbl>, PE-Cy5-H <dbl>, PE-Cy5.5-H <dbl>,
+#> #   PerCP-eFluor 710-H <dbl>, PE-Cy7-H <dbl>, APC-H <dbl>, APC-R700-H <dbl>,
+#> #   APC-Fire 750-H <dbl>, AF-H <dbl>, BV421-A <dbl>, Pacific Blue-A <dbl>,
+#> #   BV480-A <dbl>, BV510-A <dbl>, BV570-A <dbl>, BV605-A <dbl>, BV650-A <dbl>,
+#> #   BV711-A <dbl>, BV785-A <dbl>, BB515-A <dbl>, Alexa Fluor 532-A <dbl>,
+#> #   PE-A <dbl>, PE-Dazzle594-A <dbl>, PE-Cy5-A <dbl>, PE-Cy5.5-A <dbl>,
+#> #   PerCP-eFluor 710-A <dbl>, PE-Cy7-A <dbl>, APC-A <dbl>, APC-R700-A <dbl>,
+#> #   APC-Fire 750-A <dbl>, Zombie Nir-A <dbl>, AF-A <dbl>
 ```
 
 Note that when you plot the FMOs here, you should see all of the FMOs
@@ -216,7 +214,7 @@ all_fe <- df_all_gated %>%
   count_calc()
 ```
 
-# Visulatizations
+# Visualizations
 
 Initial identification of populations plot
 
@@ -263,17 +261,10 @@ sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe,
 Plot sample populations
 
 ``` r
-
 simple_pop_df <- sample_populations %>%
   column_to_rownames("population") 
 
-simple_pop_df %>%
-  dplyr::select(all_of(order_of_markers)) %>%
-  mutate_all(~convert_factor_numeric(.)) %>%
-    pheatmap::pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
-             labels_row = rownames(simple_pop_df),
-             cellwidth = 15, cellheight = 15, angle_col = 45, 
-             color = c("#3F4788FF", "#56C667FF"), cutree_rows = 2, legend = FALSE)
+heatmap_subset_pheno(simple_pop_df, order_of_markers)
 ```
 
 <img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" />

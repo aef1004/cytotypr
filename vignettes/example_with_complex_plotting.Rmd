@@ -1,17 +1,30 @@
 ---
 title: "README_short_complicated"
-output: html_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{simple_example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+There are a few packages that will need to be downloaded from CRAN:
+```{r}
+if (!require("data.table")) install.packages("data.table")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("stringr")) install.packages("stringr")
+if (!require("scales")) install.packages("scales")
+if (!require("tidyr")) install.packages("tidyr")
+if (!require("superheat")) install.packages("superheat")
+if (!require("tibble")) install.packages("tibble")
+if (!require("pheatmap")) install.packages("pheatmap")
+```
+
 ```{r message = FALSE}
 library(data.table)
-library(openCyto)
-library(ncdfFlow)
-library(flowWorkspace)
 library(dplyr)
 library(ggcyto)
 library(stringr) #this should be already added to the cytotypr package
