@@ -1,6 +1,7 @@
 ---
 title: "simple_example"
 output: rmarkdown::html_vignette
+author: "Amy Fox"
 vignette: >
   %\VignetteIndexEntry{simple_example}
   %\VignetteEngine{knitr::rmarkdown}
@@ -59,7 +60,7 @@ if (!require("flowWorkspace")) BiocManager::install("flowWorkspace")
 ```
 
 
-List of additional packages needed to run this example
+Load additional packages needed to run this example
 ```{r message = FALSE}
 library(openCyto)
 library(ncdfFlow)
@@ -77,36 +78,6 @@ library(pheatmap)
 ```
 
 The data that is being used in this example is from the paper "Cyto-feature engineering...." I have taken a few rows for analysis of one of the FMOs and one of the samples. The samples are from the lungs of C57BL/6 mice that were either sham-vaccinated or vaccinated with an *Mycobacterium tuberculosis* vaccine, Bacillus Calmette–Guérin (BCG). 
-
-```{r}
-# CD3 FMO flowframe
-CD3_flowframe <- flowset_FMO_gated_data[[6]]
-
-exprs(CD3_flowframe) <- exprs(CD3_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
-
-write.FCS(CD3_flowframe, "../inst/extdata/simple_example/CD3_FMO.fcs")
-
-# CD4 FMO flowframe
-CD4_flowframe <- flowset_FMO_gated_data[[7]]
-
-exprs(CD4_flowframe) <- exprs(CD4_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
-
-write.FCS(CD4_flowframe, "../inst/extdata/simple_example/CD4_FMO.fcs")
-
-# CD8 FMO flowframe
-CD8_flowframe <- flowset_FMO_gated_data[[11]]
-
-exprs(CD8_flowframe) <- exprs(CD8_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
-
-write.FCS(CD8_flowframe, "../inst/extdata/simple_example/CD8_FMO.fcs")
-
-# sample
-sample_flowframe <- flowset_gated_data[[1]]
-
-exprs(sample_flowframe) <- exprs(sample_flowframe)[1:10000, c(2, 3, 4, 5, 8, 10, 16, 26)]
-
-write.FCS(sample_flowframe, "../inst/extdata/simple_example/sample.fcs")
-```
 
 The first thing that you need to do is develop an intial gating strategy. This includes typical data cleaning normally performed on every flow cytometry sample. A typical gating strategy will first gate on "singlets" or single cells, then "lymphocytes" to remove debris and then only the live cells. Information on developing a .csv with different gating strategies can be found here: http://opencyto.org/articles/HowToWriteCSVTemplate.html
 
@@ -214,7 +185,7 @@ plot_FMOs(FMO_filtered_data, add_quantile)
 
 I checked that all D30, D60, and D90 samples have Zombie and will run all the way through the gating when separated by day. Looking at the data, some of them are labeled Zombie NIR-A and Zombie Nir-A which means that they are not recognized as the same. - D90 has uncapitalized. I will need to read them in separately and then rename one of the two so that the cases match
 
-```{r warning=FALSE, fig.height=1.5, fig.width=1.5}
+```{r warning=FALSE, message = FALSE, fig.height=8, fig.width=4}
 
 fcsFiles <- list.files("../inst/extdata/simple_example", pattern = "sample", full = TRUE)
 
@@ -314,10 +285,8 @@ simple_pop_df %>%
 
 ```
 
-
 Plot percentages
 ```{r}
-
 sample_populations_all_groups %>%
   ggplot(aes(x = filename, y = percentage, fill = population)) +
   geom_bar(stat = "identity") +

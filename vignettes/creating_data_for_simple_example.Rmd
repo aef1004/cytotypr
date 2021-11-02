@@ -1,0 +1,167 @@
+---
+title: "creating_data_for_simple_example"
+author: "Amy Fox"
+date: "11/2/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r message = FALSE}
+library(data.table)
+library(openCyto)
+library(ncdfFlow)
+library(flowWorkspace)
+library(dplyr)
+library(ggcyto)
+library(stringr) #this should be already added to the cytotypr package
+library(scales)
+library(tidyr)
+library(superheat)
+library(tibble)
+library(pheatmap)
+```
+
+The first thing that you need to do is develop an intial gating strategy. This includes typical data cleaning normally performed on every flow cytometry sample. A typical gating strategy will first gate on "singlets" or single cells, then "lymphocytes" to remove debris and then only the live cells. Information on developing a .csv with different gating strategies can be found here: http://opencyto.org/articles/HowToWriteCSVTemplate.html
+
+Briefly, the "alias" column is what you will call each of the gating populations, for example, when gating on singlets, I'll probably want to give the alias of "singlets". The "pop" column takes in either a "+" or "-". When you want to take the positive cells, or the cells on the right side (or within) a the gate, you add a "+" here. The "parent" column lists the name of the cells that you want to gate. For example, the first parent will be "root" because  because we're gating on all of the available cells. If we gate our root cells to look at our siglets, then our next gate will use "singlets" as the parent. The "dims" is the name of the flow cytometry marker name listed in the data that you want to gate on. For example, when gating on singlets, we look at SSC-A and SSC-H, so our dims will be "SSC-A,SSC-H" when gating on CD4 cells, we will write "CD4." Note that the "dims" name must match exactly do the colunn names in your data. Finally include the name of the gating method that you want to use. Different gating options can be found here: http://opencyto.org/articles/HowToAutoGating.html.
+
+Read in the initial gating strategy, which gates to live lymphocytes, into a `gatingTemplate` class.
+
+```{r}
+# Identify the file with the gating strategy 
+ws <- list.files("../inst/extdata/", 
+                 pattern = "gating_strategy.csv", 
+                 full = TRUE)
+ws
+
+```
+
+```{r}
+# View this template
+dtTemplate <- fread(ws)
+dtTemplate
+```
+
+```{r message = FALSE, warning = FALSE}
+# Read in the gating strategy to a 'gatingTemplate' object
+initial_gate <- gatingTemplate(ws) 
+plot(initial_gate)
+```
+
+### Read in the FMO data
+```{r}
+# Identify the file names of all 20 FCS flow cytometry experiments to 
+# read in. 
+FMO_fcsFiles <- list.files("../inst/extdata/FMOs", full = TRUE)
+FMO_fcsFiles
+
+```
+
+```{r message = FALSE, warning = FALSE}
+# Read these files into a 'ncdfFlowSet' object. This will taken a minute
+# or so to run. The resulting 'ncdfFlowset' object contains row names with the 
+# individual samples and column names with the markers/parameters used in the flow cytometer.
+ncfs_FMO <- read.ncdfFlowSet(FMO_fcsFiles, channel_alias = data.frame(alias = c("Zombie Nir-A"), channels = c("Zombie_NIR-A, Zombie NIR-A, Zombie Nir-A"))) 
+ncfs_FMO
+```
+
+Apply the initial gating to filter the data to only measurements on live lymphocyte cells.
+
+```{r}
+# Convert to a 'GatingSet' object, so we can apply the initial gating to this data.
+gs_FMO <- GatingSet(ncfs_FMO)
+gs_FMO
+```
+
+```{r fig.height = 8, fig.width = 4}
+# Apply the initial gating to this data, to filter to only measurements
+# on live lymphocyte cells. This may take a minute.
+gt_gating(initial_gate, gs_FMO)
+
+# You can plot the results of this gating with `autoplot`. For example, to plot
+# the gating for the first sample, run:
+autoplot(gs_FMO[[1]])
+```
+
+## Convert data to "tidy data" format
+
+Now that the initial gating has been applied, to limit the data to measurements oflive, singlet lymphocyte cells, we convert the data to a "tidy data" format, to allow us to work with "tidyverse" tools for further analysis and visualization.
+
+```{r}
+# Pull out the data from the 'live' node of the gating set (the last node
+# in the initial gating strategy).
+flowset_FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>% 
+  cytoset_to_flowSet() 
+```
+
+Apply the `tidy_flow_set` function to the 'flowSet' of gated FMO data to output a dataframe:
+
+```{r}
+FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
+
+FMO_gated_data
+```
+
+
+### Gating the sample data
+
+I checked that all D30, D60, and D90 samples have Zombie and will run all the way through the gating when separated by day. Looking at the data, some of them are labeled Zombie NIR-A and Zombie Nir-A which means that they are not recognized as the same. - D90 has uncapitalized. I will need to read them in separately and then rename one of the two so that the cases match
+
+```{r warning=FALSE, fig.height=1.5, fig.width=1.5}
+
+fcsFiles <- list.files("../inst/extdata/Tcell_samples", 
+                       pattern = ".fcs", full = TRUE)
+
+# ncdfFlowset object contains row names with the individual samples and column names with the markers/parameters used in the flow cytometer
+ncfs <- read.ncdfFlowSet(fcsFiles, channel_alias = data.frame(alias = c("Zombie Nir-A"), channels = c("Zombie_NIR-A, Zombie NIR-A, Zombie Nir-A"))) 
+
+# apply gating set
+gs <- GatingSet(ncfs)
+
+# gate the samples
+gt_gating(initial_gate, gs)
+
+```
+
+Pull out the gated data
+
+Want to change gated_flowset to flowset_gated_data
+```{r}
+# Pull out the gated data - could potentially add to the function below
+flowset_gated_data <- gs_pop_get_data(gs, "live") %>% 
+  cytoset_to_flowSet() 
+
+```
+
+
+```{r}
+# CD3 FMO flowframe
+CD3_flowframe <- flowset_FMO_gated_data[[6]]
+
+exprs(CD3_flowframe) <- exprs(CD3_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
+
+write.FCS(CD3_flowframe, "../inst/extdata/simple_example/CD3_FMO.fcs")
+
+# CD4 FMO flowframe
+CD4_flowframe <- flowset_FMO_gated_data[[7]]
+
+exprs(CD4_flowframe) <- exprs(CD4_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
+
+write.FCS(CD4_flowframe, "../inst/extdata/simple_example/CD4_FMO.fcs")
+
+# CD8 FMO flowframe
+CD8_flowframe <- flowset_FMO_gated_data[[11]]
+
+exprs(CD8_flowframe) <- exprs(CD8_flowframe)[1:10000, c(2, 3, 4, 5, 29, 31, 37, 47)]
+
+write.FCS(CD8_flowframe, "../inst/extdata/simple_example/CD8_FMO.fcs")
+
+# sample
+sample_flowframe <- flowset_gated_data[[1]]
+
+exprs(sample_flowframe) <- exprs(sample_flowframe)[1:10000, c(2, 3, 4, 5, 8, 10, 16, 26)]
+
+write.FCS(sample_flowframe, "../inst/extdata/simple_example/sample.fcs")
+```
