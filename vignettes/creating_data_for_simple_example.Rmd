@@ -1,13 +1,23 @@
 ---
-title: "creating_data_for_simple_example"
+title: "Creating_data_for_simple_example"
+output: rmarkdown::html_vignette
 author: "Amy Fox"
-date: "11/2/2021"
-output: html_document
+vignette: >
+  %\VignetteIndexEntry{Creating_data_for_simple_example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
 ```
+
+
 ```{r message = FALSE}
 library(data.table)
 library(openCyto)

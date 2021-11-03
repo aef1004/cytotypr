@@ -56,6 +56,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 if (!require("openCyto")) BiocManager::install("openCyto")
 if (!require("ncdfFlow")) BiocManager::install("ncdfFlow")
 if (!require("flowWorkspace")) BiocManager::install("flowWorkspace")
+if (!require("ggcyto")) BiocManager::install("ggcyto")
 
 ```
 
@@ -65,6 +66,7 @@ Load additional packages needed to run this example
 library(openCyto)
 library(ncdfFlow)
 library(flowWorkspace)
+library(ggcyto)
 library(data.table)
 library(dplyr)
 library(stringr)
@@ -212,9 +214,9 @@ flowset_gated_data <- gs_pop_get_data(gs, "live") %>%
   cytoset_to_flowSet() 
 
 # tidy the flowset and convert to a dataframe
-df_all_gated <-  tidy_flow_set(flowset_gated_data) 
+df_all_gated_simple <-  tidy_flow_set(flowset_gated_data) 
 
-unique(df_all_gated$filename)
+unique(df_all_gated_simple$filename)
 ```
 
 ## Feature engineer the data
@@ -223,7 +225,7 @@ Feature cut the data to get all of the possible populations for each file with t
 
 The "count_calc" function at the end calculates the cell counts and percentage of cells in each sample for each population. The dataframe that is input into this function should only contain the markers that you're interesting in looking at, and should remove SSC-A, FSC-A, etc. 
 ```{r}
-all_fe <- df_all_gated %>%
+all_fe <- df_all_gated_simple %>%
   select(ends_with("-A"), -`FSC-A`, filename) %>%
   dplyr::rename(`CD3` = "Alexa Fluor 532-A",
                 `CD4` = "BV480-A",
@@ -234,6 +236,8 @@ all_fe <- df_all_gated %>%
          CD8 = fe(add_quantile, CD8, "CD8")) %>%
   select(-`Zombie Nir-A`,  -`SSC-A`) %>%
   count_calc()
+
+
 
 ```
 

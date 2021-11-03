@@ -3,7 +3,7 @@ title: "Cytotypr Example: Reading in Data"
 output: rmarkdown::html_vignette
 author: "Amy Fox"
 vignette: >
-  %\VignetteIndexEntry{simple_example}
+  %\VignetteIndexEntry{Cytotypr Example: Reading in Data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
