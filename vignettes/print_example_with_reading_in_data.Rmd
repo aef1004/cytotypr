@@ -1,0 +1,603 @@
+---
+title: "Cytotypr Example: Reading in Data"
+output: rmarkdown::html_vignette
+author: "Amy Fox"
+vignette: >
+  %\VignetteIndexEntry{simple_example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+## Overview
+
+The goal of cytotypr is to identify flow cytometry cell populations efficiently using either Fluorescent Minus One controls (FMOs) or distinct population differences.
+
+For flow cytometry, FMOs can add information about the possible range of expression measurements for cells that are truly negative for a marker. The threshold identified by FMOs can be used to create new binary features that capture whether the expression of each marker is positive or negative for the cell, thus, simplifying overly redundant, continuous MFI data with noise resulting from spillover. In the pipeline, we feature engineer each parameter using the thresholds identified from the FMOs, so that positive expression on cells (values above the FMO cutoff) equal 1 and negative cells equal 0.
+
+An in-depth description of the pipeline can be found in our paper [Cyto-Feature Engineering: A Pipeline for Flow Cytometry Analysis to Uncover Immune Populations and Associations with Disease](https://www.nature.com/articles/s41598-020-64516-0)
+
+## Installation
+
+You can install the development version of cytotypr from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("aef1004/cytotypr")
+```
+
+There are a few additional packages that will need to be downloaded from CRAN:
+```{r message = FALSE}
+if (!require("data.table")) install.packages("data.table")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("stringr")) install.packages("stringr")
+if (!require("scales")) install.packages("scales")
+if (!require("tidyr")) install.packages("tidyr")
+if (!require("superheat")) install.packages("superheat")
+if (!require("tibble")) install.packages("tibble")
+if (!require("pheatmap")) install.packages("pheatmap")
+if (!require("purrr")) install.packages("purrr")
+if (!require("broom")) install.packages("broom")
+```
+
+Other packages will need to be downloaded from bioconductor:
+```{r message = FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+if (!require("openCyto")) BiocManager::install("openCyto")
+if (!require("ncdfFlow")) BiocManager::install("ncdfFlow")
+if (!require("flowWorkspace")) BiocManager::install("flowWorkspace")
+if (!require("ggcyto")) BiocManager::install("ggcyto")
+
+```
+
+## Example
+
+This is an full example which shows you how to obtain basic results and plots for flow cytometry data using FMOs. It starts by reading in the flow cytometry files, performing initial gating, and then performing the feature engineering and plotting the results.
+
+Let's load the necessary packages first.
+
+```{r}
+library(cytotypr)
+```
+
+```{r message = FALSE}
+library(data.table)
+library(openCyto)
+library(ncdfFlow)
+library(flowWorkspace)
+library(dplyr)
+library(ggcyto)
+library(stringr) 
+library(scales)
+library(tidyr)
+library(superheat)
+library(tibble)
+library(pheatmap)
+library(purrr)
+library(broom)
+```
+
+## Gating strategy
+
+The first thing that you need to do is develop an initial gating strategy. This includes typical data cleaning normally performed on every flow cytometry sample. A typical gating strategy will first gate on "singlets" or single cells, then "lymphocytes" to remove debris and then only the live cells. Information on developing a .csv with different gating strategies can be found here: http://opencyto.org/articles/HowToWriteCSVTemplate.html
+
+Briefly, the "alias" column is what you will call each of the gating populations, for example, when gating on singlets, you may want to give the alias of "singlets". The "pop" column takes in either a "+" or "-". When you want to take the positive cells, or the cells on the right side (or within) a the gate, you add a "+" here. The "parent" column lists the name of the cells that you want to gate. For example, the first parent will be "root" because  because we're gating on all of the available cells. If we gate our root cells to look at our singlets, then our next gate will use "singlets" as the parent. The "dims" is the name of the flow cytometry marker name listed in the data that you want to gate on. For example, when gating on singlets, we look at SSC-A and SSC-H, so our dims will be "SSC-A,SSC-H" when gating on CD4 cells, we will write "CD4." Note that the "dims" name must match exactly do the column names in your data. Finally include the name of the gating method that you want to use. Different gating options can be found here: http://opencyto.org/articles/HowToAutoGating.html.
+
+Read in the initial gating strategy, which gates on single live lymphocytes, into a `gatingTemplate` class.
+
+```{r}
+ws <- list.files("../inst/extdata", 
+                 pattern = "gating_strategy.csv", 
+                 full = TRUE)
+ws
+
+```
+
+View the template
+```{r}
+dtTemplate <- fread(ws)
+```
+
+```{r echo = FALSE, message = FALSE}
+library(kableExtra)
+dtTemplate %>%
+   kable(align = c("l", "c", "c", "c"), caption = "Gating Template") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+Read in the gating strategy to a 'gatingTemplate' object
+```{r message = FALSE, warning = FALSE, fig.width= 4, fig.height= 5}
+initial_gate <- gatingTemplate(ws) 
+plot(initial_gate)
+```
+
+## Read in the FMO data
+
+Navigate to the folder that contains all of the FMOs for the experiment
+```{r}
+FMO_fcsFiles <- list.files("../inst/extdata/FMOs", full = TRUE)
+FMO_fcsFiles
+
+```
+
+Read these files into a 'ncdfFlowSet' object. This will taken a minute or so to run. The resulting 'ncdfFlowset' object contains row names with the individual samples and column names with the markers/parameters used in the flow cytometer.
+```{r message = FALSE, warning = FALSE}
+
+ncfs_FMO <- read.ncdfFlowSet(FMO_fcsFiles, channel_alias = data.frame(alias = c("Zombie Nir-A"), channels = c("Zombie_NIR-A, Zombie NIR-A, Zombie Nir-A"))) 
+
+ncfs_FMO
+```
+
+Convert the 'ncdfFlowSet' to a 'GatingSet' object, so we can apply the initial gating to this data.
+
+```{r}
+gs_FMO <- GatingSet(ncfs_FMO)
+gs_FMO
+```
+
+Apply the initial gating to this data, to filter to only measurements on live lymphocyte cells. This may take a minute.
+
+```{r}
+gt_gating(initial_gate, gs_FMO)
+```
+Visualize the results of this gating with `autoplot`. For example, to plot the gating for the first sample, run:
+
+```{r fig.height = 8, fig.width = 4}
+autoplot(gs_FMO[[1]])
+```
+
+
+## Convert data to "tidy data" format
+
+Now that the initial gating has been applied to limit the data to measurements of live, single lymphocyte cells, we convert the data to a "tidy data" format, to allow us to work with "tidyverse" tools for further analysis and visualization.
+
+We pull out the data from the 'live' node of the gating set (the last node in the initial gating strategy).
+```{r}
+flowset_FMO_gated_data <- gs_pop_get_data(gs_FMO, "live") %>% 
+  cytoset_to_flowSet() 
+```
+
+Apply the `tidy_flow_set` function to the 'flowSet' of gated FMO data to output a dataframe:
+
+```{r}
+FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
+```
+
+```{r echo = FALSE}
+head(FMO_gated_data)%>%
+   kable(align = c("l", "c", "c", "c")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+Here, each row is a different cell.
+
+We start by cleaning up the data by renaming the columns to the names of the markers rather than the fluors. 
+
+We also must ensure that all of the FMO filenames EXACTLY match the names of the column markers.For example, if the filename says "CD103_f" but the corresponding column name for that marker is "CD103", you need to either change the filename or column name so that they are exactly the same. That is what we are doing with the "IFN" column here, to ensure that the filename which says "IFN" is not labeled as "IFNG" and rather "IFN"
+
+```{r}
+# note that here the filename and the column marker names need to match exactly
+df_FMO_gated_data <- FMO_gated_data %>%
+  select(ends_with("-A"), -`FSC-A`, `SSC-A`, filename) %>%
+  dplyr::rename(`FoxP3` = "APC-A",
+         `CD44` = "APC-Fire 750-A",
+        `CD103` =  "APC-R700-A",       
+         `CD3` = "Alexa Fluor 532-A",
+         `Sca1` = "BB515-A",
+         `IL_10` = "BV421-A",
+         `CD4` = "BV480-A",
+         `CD69` = "BV510-A",
+         `CD8` = "BV570-A", 
+         `CTLA4` = "BV605-A",
+         `CD27` = "BV650-A",
+         `CD153` = "BV711-A",
+         `KLRG1` = "BV785-A",
+         `IL_17` = "PE-A",
+         `CD122` = "PE-Cy5-A",
+         `IFN` = "PE-Cy7-A", 
+         `CD62L` = "PE-Dazzle594-A",
+         `TNF` = "Pacific Blue-A", 
+         `CD28` = "PE-Cy5.5-A",
+         `PD1` = "PerCP-eFluor 710-A")  %>%
+   na.omit()%>%
+  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  mutate(filename = str_replace(filename, ".fcs", "")) %>%
+  mutate(filename = str_replace(filename, "IFNG", "IFN"))
+
+```
+
+Filter the data for each FMO file to only contain information on the marker for that FMO 
+```{r}
+FMO_filtered_data <- filter_FMO(df_FMO_gated_data)
+```
+
+A snapshot of the data is shown here:
+```{r echo = FALSE}
+head(FMO_filtered_data)%>%
+   kable(align = c("l", "c", "c", "c")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+Calculate the 99% quantile threshold for each FMO
+```{r}
+add_quantile <- get_99(FMO_filtered_data)
+```
+
+```{r echo = FALSE}
+add_quantile %>%
+   kable(align = c("l", "c", "c", "c")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+Plot the 99% threshold for each of the FMOs
+
+Note that when you plot the FMOs here, you should see all of the FMOs that you want to use. If you don't see all of them, ensure that all of your filenames and column names for each of the markers matches exactly as described above
+```{r fig.height = 5, fig.width = 7}
+plot_FMOs(FMO_filtered_data, add_quantile)
+```
+
+### Gating the sample data
+
+Looking at the different timepoints for this study: D30, D60, and D90, some of the timepoints have the live-dead stain named slightly differently. Some samples are labeled "Zombie NIR-A", others are labeled as "Zombie Nir-A." This small difference in capitalization means that they will not be recognized as the same marker, so we add in a argument for "channel_alias" which can standardize the names.
+
+```{r warning=FALSE, message = FALSE}
+
+fcsFiles <- list.files("../inst/extdata/Tcell_samples", 
+                       pattern = ".fcs", full = TRUE)
+
+# ncdfFlowset object contains row names with the individual samples and column names with the markers/parameters used in the flow cytometer
+ncfs <- read.ncdfFlowSet(fcsFiles, channel_alias = data.frame(alias = c("Zombie Nir-A"), channels = c("Zombie_NIR-A, Zombie NIR-A, Zombie Nir-A"))) 
+
+# apply gating set
+gs <- GatingSet(ncfs)
+
+# gate the samples
+gt_gating(initial_gate, gs)
+
+```
+
+View and plot the gating
+```{r}
+autoplot(gs[[1]])
+```
+
+An additional way to visualize some gates utilizes the ggcyto package
+```{r}
+ggcyto(gs[[1]], aes(x = `Zombie Nir-A`)) + 
+  geom_area(stat = "density", fill = "#440154FF") +
+  geom_gate("live")   +
+  ggcyto_par_set(limits = list(y = c(0, 5e-5), x = c(-1000, 1e5)))+
+  xlab("Zombie NIR-A") +
+  ylab("Density") +
+  ggtitle("Live") +
+  theme_gray() +
+  geom_stats(size = 5, adjust = 0.45, position = position_nudge(x = 5000)) +
+  labs_cyto("both") + 
+  theme(strip.text = element_blank(),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 20),
+        title = element_text(size = 20))+
+  scale_x_continuous(n.breaks = 3)
+```
+
+
+Pull out the gated data
+
+Want to change gated_flowset to flowset_gated_data
+```{r}
+# Pull out the gated data 
+flowset_gated_data <- gs_pop_get_data(gs, "live") %>% 
+  cytoset_to_flowSet() 
+
+# tidy the flowset and convert to a dataframe
+df_all_gated <-  tidy_flow_set(flowset_gated_data) 
+
+# check that samples were read in
+unique(df_all_gated$filename)
+```
+
+A snapshot of `df_all_gated` is shown below
+```{r echo = FALSE}
+head(df_all_gated) %>%
+   kable(align = c("l", "c", "c", "c")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+## Feature engineer the data
+
+Feature cut the data to get all of the possible populations for each file with the cell count and number of cells. Feature engineering is based on the 99%.
+
+Note that in this analysis, FoxP3 and CD69 were removed from the analysis due to spillover. 
+
+We start by cleaning up the columns for later analysis by separating out the groups and timepoints and renaming the columns to the names of the markers rather than the fluors. We then feature engineer the data with the "fe" function which pulls in the 99% threshold from the "add_quantile" dataframe.
+
+The "count_calc" function at the end calculates the cell counts and percentage of cells in each sample for each population. The dataframe that is input into this function should only contain the markers that you're interesting in looking at, and should remove SSC-A, FSC-A, etc. 
+
+In the resulting dataframe, 'all_fe', each row is a different cell phenotype (defined by a combination of positive (1) and negative (0) expression of each marker). The "cell_no" column indicates the number of cells with the corresponding phenotype in each of the samples ("filename"). The "percentage" of cells with each phenotype is calculated by dividing the "cell_no" column by the "total_count_by_file" column which indicates the total number of live single leukocytes in each sample.
+```{r}
+all_fe <- df_all_gated %>%
+  mutate(Timepoint = str_extract(filename, "D[0-9]*")) %>%
+  mutate(Group = str_extract(filename, "Group[:punct:][0-9][:punct:][A-Z]"),
+         Group = str_replace(Group, "Group_", "")) %>%
+  unite(filename, c("Timepoint", "Group")) %>%
+  select(ends_with("-A"), -`FSC-A`, filename) %>%
+  dplyr::rename(`FoxP3` = "APC-A",
+         `CD44` = "APC-Fire 750-A",
+        `CD103` =  "APC-R700-A",       
+         `CD3` = "Alexa Fluor 532-A",
+         `Sca1` = "BB515-A",
+         `IL_10` = "BV421-A",
+         `CD4` = "BV480-A",
+         `CD69` = "BV510-A",
+         `CD8` = "BV570-A", 
+         `CTLA4` = "BV605-A",
+         `CD27` = "BV650-A",
+         `CD153` = "BV711-A",
+         `KLRG1` = "BV785-A",
+         `IL_17` = "PE-A",
+         `CD122` = "PE-Cy5-A",
+         `IFN` = "PE-Cy7-A", 
+         `CD62L` = "PE-Dazzle594-A",
+         `TNF` = "Pacific Blue-A", 
+         `CD28` = "PE-Cy5.5-A",
+         `PD1` = "PerCP-eFluor 710-A") %>% # clean up the column names
+  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+  mutate(CD3 = fe(add_quantile, CD3, "CD3"),
+         CD4 = fe(add_quantile, CD4, "CD4"),
+         CD8 = fe(add_quantile, CD8, "CD8"),
+         CD44 = fe(add_quantile, CD44, "CD44"),
+         CD103 = fe(add_quantile, CD103, "CD103"),
+         Sca1 = fe(add_quantile, Sca1, "Sca1"),
+         IL_17 = fe(add_quantile,IL_17, "IL_17"),
+         CD69 = fe(add_quantile,CD69, "CD69"),
+         CTLA4 = fe(add_quantile,CTLA4, "CTLA4"),
+         CD27 = fe(add_quantile,CD27, "CD27"),
+         CD153 = fe(add_quantile,CD153, "CD153"),
+         KLRG1 = fe(add_quantile,KLRG1, "KLRG1"),
+         IFN = fe(add_quantile,IFN, "IFN"),
+         FoxP3 = fe(add_quantile,FoxP3, "FoxP3"),
+         CD122 = fe(add_quantile,CD122, "CD122"),
+         PD1 = fe(add_quantile,PD1, "PD1"),
+         CD62L = fe(add_quantile,CD62L, "CD62L"),
+         IL_10 = fe(add_quantile,IL_10, "IL_10"),
+         CD28 = fe(add_quantile,CD28, "CD28"),
+         TNF = fe(add_quantile,TNF, "TNF")) %>% # feature engineer the data
+  select(-`Zombie Nir-A`, -`AF-A`, -`SSC-A`, -FoxP3, -CD69) %>% # any column that doesn't have a 0 or 1 must be removed here (Except experimental/group names)
+  count_calc()
+```
+
+```{r echo = FALSE}
+head(all_fe) %>%
+   kable(align = c("l", "c", "c", "c")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+Optional Check with Flowjo
+```{r}
+# check_flowjo <- function(df, marker, file) {
+#   
+#   df %>%
+#   filter({{marker}} == 1) %>%
+#   group_by(filename) %>%
+#   mutate(sum_percentage  = sum(percentage)) %>%
+#   select({{marker}}, filename, sum_percentage) %>%
+#   unique()
+# }
+
+
+check_flowjo(all_fe, CD3)
+
+
+```
+
+
+## Visualizations: All cell phenotypes present in the samples
+
+Initial identification of populations plot
+
+We first want to view all of the different cell phenotypes within the data.
+
+```{r fig.width = 4, fig.height = 2}
+# this is the order of markers that we want for all of our plots
+order_of_markers <- c("CD3", "CD4", "CD8",  "CD44", "CD103", "Sca1", "IL_17","CTLA4",
+                      "CD27",  "CD153", "KLRG1", "IFN",  "CD122", "PD1", "CD62L",
+                      "IL_10", "CD28","TNF")
+
+# to view all of the possible combinations
+total_phenotypes <- filter_for_total_pheno(all_fe, marker_order = order_of_markers)
+
+heatmap_all_pheno(total_phenotypes)
+```
+
+This gives the total number of populations that were identified in all of the samples
+```{r}
+nrow(total_phenotypes) 
+```
+
+
+## Visualizations: Filtered cell phenotypes of interest in the samples
+
+After identifying all phenotypes, we can filter the data to see the ones that we're interested in, for example, CD3+ cells that constitute > 1% of total live leukocytes in a sample.
+
+```{r}
+# view the specific cell phenotypes we're interested in
+sample_populations <- all_fe %>%
+  dplyr::filter(CD3 == 1 & percentage > 1) %>%
+  filter_pops() 
+
+sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe, marker_vector = order_of_markers)
+```
+
+The heatmaps show the CD3+ phenotypes that constitute greater than 1% of the live leukocytes in at least one sample. Green indicates positive expression, and blue indicates negative expression of all markers used for analysis in the flow cytometry experiment on the x-axis. 
+
+```{r}
+
+simple_pop_df <- sample_populations %>%
+  column_to_rownames("population") 
+
+simple_pop_df %>%
+  dplyr::select(all_of(order_of_markers)) %>%
+  mutate_all(~convert_factor_numeric(.)) %>%
+    pheatmap::pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
+             labels_row = rownames(simple_pop_df),
+             cellwidth = 15, cellheight = 15, angle_col = 45, 
+             color = c("#3F4788FF", "#56C667FF"), cutree_rows = 2, legend = FALSE)
+
+```
+
+## Visualizations: Correlation plot
+
+The pipeline then visualizes a correlation matrix comparing the percentage of cells in each of the populations. This allows users to explore associations between cell populations. Yellow indicates high positive correlation and purple is high negative correlation. 
+
+
+```{r fig.height = 6, fig.width=6}
+corr <- calc_corr(sample_populations_all_groups)
+
+superheat(corr,  row.title = "Populations", column.title = "Populations")
+
+```
+
+## Visualizations: Time Series Plot 
+
+For this study, the percentage of cells in each population at each timepoint is plotted to compare the dynamic changes in populations over time and between groups. Each small plot shows the time series of a single cell population identified in the pipeline at the three measured timepoints post-infection. Separate lines are shown for vaccinated versus control mice. Each point represents average cell populations across all mouse replicates (4–5 per time point and vaccination status). 
+
+
+```{r fig.width = 7, fig.height = 5}
+
+# take the data for filtered populations and rename so that plots are pretty
+
+pops_for_plots_average <- sample_populations_all_groups %>%
+  tidyr::separate(filename, into = c("Timepoint", "Group", "Number"),
+                  sep = "_") %>%
+  dplyr::group_by(population, Timepoint, Group) %>%
+  dplyr::summarise(average_percent = mean(percentage)) %>%
+  dplyr::mutate(Group = str_replace(Group, "1", "Control"),
+         Group = str_replace(Group, "2", "Vaccinated")) %>%
+  dplyr::mutate(Timepoint = str_extract(Timepoint, "[0-9].+")) %>%
+  dplyr::mutate(pop = as.numeric(str_extract(population, "[:digit:]+"))) 
+
+
+ggplot(pops_for_plots_average, aes(x = Timepoint, y = average_percent, 
+                                   group = Group, color = Group)) +
+  scale_fill_identity() +
+  geom_point() +
+  geom_line() +
+  facet_wrap("pop",  scales = "free", ncol = 7, labeller = label_both) +
+  xlab("Days Post-Infection") +
+  ylab("Average Percent of Total Live Leukocytes") +
+  theme_gray() 
+
+```
+
+## Visualizations: Correlation with other experimental data
+
+At this stage, the pipeline allows the integration of cell population measurements with other data from the experiment, such as lesion scores or gene expression. In the M. tuberculosis study, bacterial burden (expressed as log10 transformed Colony Forming Units (CFUs)) is a measurement of the number of bacteria found in the lung. These CFU measurements were found to vary between experimental groups in the case study data, with significantly higher bacterial burden at days 30, 60, and 90 post-infection in the control group compared to the vaccinated group. It is of interest to investigate if certain cell populations identified through the pipeline, are associated with this measurement of bacterial burden, as this might help to identify cell populations possibly indicative of the host’s response to infection with or without vaccination.
+
+We start by reading in the CFU data which is saved in an excel file and accessing the flow data ("sample_populations_all_groups") and joining the two datasets.
+
+```{r fig.width = 3.5, fig.height= 3.5}
+
+CFUs <- readxl::read_xlsx("../inst/extdata/CFU_data.xlsx") %>%
+  dplyr::filter(Organ == "Lung") %>%
+  dplyr::filter(Group == "1" | Group == "2")
+
+# clean the flow data and prepare to join with CFU
+pops_for_CFUs <- sample_populations_all_groups %>%
+  separate(filename, into = c("Timepoint", "Group", "Number"), sep = "_") %>%
+  dplyr::mutate(Timepoint = str_replace(Timepoint, "D", "")) %>%
+  dplyr::mutate(Timepoint = as.numeric(Timepoint),
+                Group = as.numeric(Group)) 
+
+# join together the CFU data and the population data
+pops_CFUs <- inner_join(pops_for_CFUs, CFUs, by = c("Group", "Number", "Timepoint")) %>%
+  dplyr::mutate(pop = as.numeric(str_extract(population, "[:digit:]+"))) %>%
+  select(-population)
+
+```
+
+Here we group and nest the data by the different populations and perform linear regressions on the data
+
+```{r}
+fitted_models <- pops_CFUs %>%
+  group_by(pop) %>%
+  nest() %>%
+  dplyr::mutate(model = map(data, ~lm(percentage ~ CFU, data = .)),
+         summary_model = map(model, tidy)) %>%
+  unnest(summary_model) %>%
+  dplyr::filter(term == "CFU") %>%
+  dplyr::select(pop, estimate, model) %>%
+  dplyr::mutate(tidy_model = map(model, broom::glance)) %>%
+  unnest(tidy_model) %>%
+ dplyr::select(pop, adj.r.squared, p.value, estimate) %>%
+  ungroup()
+
+```
+Because we're performing many comparisons, we apply a multiple comparisons correction, in this case "BH" or Benjamini & Hochberg to adjust our p-values.
+
+```{r}
+values_for_plot <- fitted_models %>%
+  mutate(p.val.adj = p.adjust(p.value, method = "BH", 
+                              n = length(fitted_models$p.value))) 
+```
+  
+  
+```{r echo = FALSE}
+values_for_plot %>%
+   kable(align = c("l", "c", "c", "c")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+First we calculate where we want to place our labels on our ggplot. We calculate where the label will fall on the x-axis for each population by finding the range of the x-values and dividing by 2 to find the center. For the location on the y-axis, we place the label as the smallest y-axis value if the relationship is positive, and the largest y-axis value is the relationship is negative.
+
+```{r}
+r_labeling <- left_join(pops_CFUs, values_for_plot, by = "pop") %>%
+  group_by(pop) %>%
+  mutate(average_percentage = mean(percentage)) %>%
+  mutate(x_axis_label = (max(percentage) - min(percentage))/2,
+         y_axis_label = ifelse(estimate <= 0, max(CFU), min(CFU))) %>%
+  select(pop, average_percentage, adj.r.squared, p.val.adj, 
+         x_axis_label, y_axis_label) %>%
+  unique()
+```
+
+```{r echo = FALSE}
+r_labeling %>%
+   kable(align = c("l", "c", "c", "c")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+We then plot the data where each small plot shows the association between a specific cell population and bacterial burden across all samples for the experiment. The x-axis in each small plot gives the percentage of cells in a population, with each point providing the measurement from a single mouse. The y-axis gives the log10 M. tuberculosis CFUs for that mouse. Estimates of how well the linear models fit the data between cell population sizes and log10 CFUs are given on each plot (“r2”).
+
+```{r fig.height = 7, fig.width = 9}
+
+ggplot(pops_CFUs) +
+  scale_fill_identity() +
+  geom_point(aes(percentage, CFU), color = "black") +
+  geom_smooth(aes(x = percentage, y = CFU), method = "lm", se = FALSE, color = "#3F4788FF") +
+  geom_text(data = r_labeling, aes(x = x_axis_label, y = y_axis_label, 
+                                   label = paste("r^2 == ",
+                                                 round(adj.r.squared, 2))),
+            parse = TRUE) +
+  facet_wrap(~pop, scales = "free_x", ncol = 5, labeller = label_both) +
+  xlab("Percentage of Cells") +
+  ylab("log10 CFU") +
+  ggtitle("Population and CFU Linear regression") 
+
+```
+
+
