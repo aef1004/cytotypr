@@ -1,6 +1,7 @@
 ---
 title: "README_short_complicated"
 output: rmarkdown::html_vignette
+author: "Amy Fox"
 vignette: >
   %\VignetteIndexEntry{simple_example}
   %\VignetteEngine{knitr::rmarkdown}
