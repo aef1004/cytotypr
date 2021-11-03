@@ -21,6 +21,6 @@ A flowSet with 25 experiments (samples) containing all of the measured data:
 flowset_FMO_gated_data
 }
 \description{
-Description of data
+A FlowSet containing all of the FMO samples and measured data
 }
 \keyword{datasets}

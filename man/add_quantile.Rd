@@ -9,7 +9,6 @@ A data frame with 20 rows and 2 variables:
 \describe{
   \item{filename}{ character: the name of the marker for each cutoff}
   \item{quantile_99}{ numeric: the corresponding MFI value which is the cutoff between positive and negative populations for a particular marker}
-  ...
 }
 }
 \usage{
