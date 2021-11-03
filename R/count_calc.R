@@ -5,7 +5,18 @@
 #' @return dataframe with the percentage of cells in each population for each sample
 #' @export
 #'
-#' @examples
+#' @examples df_all_gated_simple %>%
+#'  select(ends_with("-A"), -`FSC-A`, filename) %>%
+#'  dplyr::rename(`CD3` = "Alexa Fluor 532-A",
+#'                `CD4` = "BV480-A",
+#'                `CD8` = "BV570-A") %>%
+#'  dplyr::filter(`SSC-A` != max(`SSC-A`)) %>%
+#'  mutate(CD3 = fe(add_quantile, CD3, "CD3"),
+#'         CD4 = fe(add_quantile, CD4, "CD4"),
+#'         CD8 = fe(add_quantile, CD8, "CD8")) %>%
+#'  select(-`Zombie Nir-A`,  -`SSC-A`) %>%
+#'  count_calc()
+#'
 #' @importFrom dplyr %>%
 #' @importFrom rlang .data
 #'
