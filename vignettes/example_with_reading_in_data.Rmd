@@ -104,6 +104,7 @@ View the template
 dtTemplate <- fread(ws)
 dtTemplate
 ```
+
 Read in the gating strategy to a 'gatingTemplate' object
 ```{r message = FALSE, warning = FALSE, fig.width= 4, fig.height= 5}
 initial_gate <- gatingTemplate(ws) 
@@ -447,4 +448,92 @@ ggplot(pops_for_plots_average, aes(x = Timepoint, y = average_percent,
   theme_gray() 
 
 ```
+
+## Visualizations: Correlation with other experimental data
+
+At this stage, the pipeline allows the integration of cell population measurements with other data from the experiment, such as lesion scores or gene expression. In the M. tuberculosis study, bacterial burden (expressed as log10 transformed Colony Forming Units (CFUs)) is a measurement of the number of bacteria found in the lung. These CFU measurements were found to vary between experimental groups in the case study data, with significantly higher bacterial burden at days 30, 60, and 90 post-infection in the control group compared to the vaccinated group. It is of interest to investigate if certain cell populations identified through the pipeline, are associated with this measurement of bacterial burden, as this might help to identify cell populations possibly indicative of the host’s response to infection with or without vaccination.
+
+We start by reading in the CFU data which is saved in an excel file and accessing the flow data ("sample_populations_all_groups") and joining the two datasets.
+
+```{r fig.width = 3.5, fig.height= 3.5}
+
+CFUs <- readxl::read_xlsx("../inst/extdata/CFU_data.xlsx") %>%
+  dplyr::filter(Organ == "Lung") %>%
+  dplyr::filter(Group == "1" | Group == "2")
+
+# clean the flow data and prepare to join with CFU
+pops_for_CFUs <- sample_populations_all_groups %>%
+  separate(filename, into = c("Timepoint", "Group", "Number"), sep = "_") %>%
+  dplyr::mutate(Timepoint = str_replace(Timepoint, "D", "")) %>%
+  dplyr::mutate(Timepoint = as.numeric(Timepoint),
+                Group = as.numeric(Group)) 
+
+# join together the CFU data and the population data
+pops_CFUs <- inner_join(pops_for_CFUs, CFUs, by = c("Group", "Number", "Timepoint")) %>%
+  dplyr::mutate(pop = as.numeric(str_extract(population, "[:digit:]+"))) %>%
+  select(-population)
+
+```
+
+Here we group and nest the data by the different populations and perform linear regressions on the data
+
+```{r}
+fitted_models <- pops_CFUs %>%
+  group_by(pop) %>%
+  nest() %>%
+  mutate(model = map(data, ~lm(percentage ~ CFU, data = .)),
+         summary_model = map(model, tidy)) %>%
+unnest(summary_model) %>%
+  filter(term == "CFU") %>%
+  select(pop, estimate, model) %>%
+  mutate(tidy_model = map(model, broom::glance)) %>%
+  unnest(tidy_model) %>%
+  select(pop, adj.r.squared, p.value, estimate) %>%
+  ungroup()
+
+```
+Because we're performing many comparisons, we apply a multiple comparisons correction, in this case "BH" or Benjamini & Hochberg to adjust our p-values.
+
+```{r}
+values_for_plot <- fitted_models %>%
+  mutate(p.val.adj = p.adjust(p.value, method = "BH", 
+                              n = length(fitted_models$p.value))) 
+
+values_for_plot 
+```
+  
+First we calculate where we want to place our labels on our ggplot. We calculate where the label will fall on the x-axis for each population by finding the range of the x-values and dividing by 2 to find the center. For the location on the y-axis, we place the label as the smallest y-axis value if the relationship is positive, and the largest y-axis value is the relationship is negative.
+
+```{r}
+r_labeling <- left_join(pops_CFUs, values_for_plot, by = "pop") %>%
+  group_by(pop) %>%
+  mutate(average_percentage = mean(percentage)) %>%
+  mutate(x_axis_label = (max(percentage) - min(percentage))/2,
+         y_axis_label = ifelse(estimate <= 0, max(CFU), min(CFU))) %>%
+  select(pop, average_percentage, adj.r.squared, p.val.adj, 
+         x_axis_label, y_axis_label) %>%
+  unique()
+```
+
+
+We then plot the data where each small plot shows the association between a specific cell population and bacterial burden across all samples for the experiment. The x-axis in each small plot gives the percentage of cells in a population, with each point providing the measurement from a single mouse. The y-axis gives the log10 M. tuberculosis CFUs for that mouse. Estimates of how well the linear models fit the data between cell population sizes and log10 CFUs are given on each plot (“r2”).
+
+fig.height = 7, fig.width = 9
+```{r fig.height = 7, fig.width = 9}
+
+ggplot(pops_CFUs) +
+  scale_fill_identity() +
+  geom_point(aes(percentage, CFU), color = "black") +
+  geom_smooth(aes(x = percentage, y = CFU), method = "lm", se = FALSE, color = "#3F4788FF") +
+  geom_text(data = r_labeling, aes(x = x_axis_label, y = y_axis_label, 
+                                   label = paste("r^2 == ",
+                                                 round(adj.r.squared, 2))),
+            parse = TRUE) +
+  facet_wrap(~pop, scales = "free_x", ncol = 5, labeller = label_both) +
+  xlab("Percentage of Cells") +
+  ylab("log10 CFU") +
+  ggtitle("Population and CFU Linear regression") 
+
+```
+
 
