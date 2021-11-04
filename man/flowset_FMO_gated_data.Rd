@@ -5,7 +5,7 @@
 \alias{flowset_FMO_gated_data}
 \title{A FlowSet containing all of the FMO samples and measured data}
 \format{
-A flowSet with 25 experiments (samples) containing all of the measured data:
+A flowSet with 20 experiments (samples) containing all of the measured data:
 \describe{
   \item{SSC-A}{ numeric: the sidescatter, or complexity, of each cell}
   \item{filename}{ character: the name of the FMO sample from which the data comes}

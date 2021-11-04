@@ -5,7 +5,7 @@
 \alias{sample_populations_all_groups}
 \title{A dataset containing the percentages for each population and sample in the data}
 \format{
-A dataframe with 594 rows and 3 variables:
+A dataframe with 252 rows and 3 variables:
 \describe{
   \item{population}{ character: the population name of the filtered data}
   \item{filename}{ character: the sample name from which each data point originates}

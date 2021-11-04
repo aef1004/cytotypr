@@ -3,9 +3,9 @@
 \docType{data}
 \name{df_FMO_gated_data}
 \alias{df_FMO_gated_data}
-\title{A dataframe containing all of the samples and measured data}
+\title{A dataframe containing all of the FMO samples and corresponding measured data}
 \format{
-A dataframe containing all of the measured data:
+A dataframe with 415,544 rows that represent each cell in the FMO samples and 24 variables which show the different markers containing all of the measured data:
 \describe{
   \item{SSC-A}{ numeric: the sidescatter, or complexity, of each cell}
   \item{filename}{ character: the name of the FMO sample from which the data comes}
@@ -21,6 +21,6 @@ A dataframe containing all of the measured data:
 df_FMO_gated_data
 }
 \description{
-A dataframe containing all of the samples and measured data
+A dataframe containing all of the FMO samples and corresponding measured data
 }
 \keyword{datasets}

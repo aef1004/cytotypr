@@ -5,7 +5,7 @@
 \alias{sample_populations}
 \title{A dataset containing the filtered population data}
 \format{
-A dataframe with 33 rows and 19 variables:
+A dataframe with 14 rows and 19 variables:
 \describe{
   \item{IL_10}{ factor: the positive (1) or negative (0) expression of IL-10 in a cell}
   \item{TNF}{ factor: the positive (1) or negative (0) expression of TNF in a cell}
