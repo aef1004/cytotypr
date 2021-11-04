@@ -15,10 +15,10 @@
 check_flowjo <- function(df, marker) {
 
   percentage_df <- df %>%
-    filter({{marker}} == 1) %>%
-    group_by(.data$filename) %>%
-    mutate(sum_percentage  = sum(.data$percentage)) %>%
-    select({{marker}}, .data$filename, .data$sum_percentage) %>%
+    dplyr::filter({{marker}} == 1) %>%
+    dplyr::group_by(.data$filename) %>%
+    dplyr::mutate(sum_percentage  = sum(.data$percentage)) %>%
+    dplyr::select({{marker}}, .data$filename, .data$sum_percentage) %>%
     unique()
 
   return(percentage_df)
