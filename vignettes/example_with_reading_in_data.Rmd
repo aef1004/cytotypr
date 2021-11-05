@@ -1,9 +1,9 @@
 ---
-title: "Cytotypr Example: Reading in Data"
+title: "example_with_reading_in_data"
 output: rmarkdown::html_vignette
 author: "Amy Fox"
 vignette: >
-  %\VignetteIndexEntry{Cytotypr Example: Reading in Data}
+  %\VignetteIndexEntry{example_with_reading_in_data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# cytotypr
+# Cytotypr Example: Reading in Data
 
 The goal of cytotypr is to identify flow cytometry cell populations efficiently using either Fluorescent Minus One controls (FMOs) or distinct population differences.
 

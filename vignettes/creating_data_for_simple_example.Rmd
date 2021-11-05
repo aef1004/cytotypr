@@ -1,9 +1,9 @@
 ---
-title: "Creating_data_for_simple_example"
+title: "creating_data_for_simple_example"
 output: rmarkdown::html_vignette
 author: "Amy Fox"
 vignette: >
-  %\VignetteIndexEntry{Creating_data_for_simple_example}
+  %\VignetteIndexEntry{creating_data_for_simple_example}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,7 +25,7 @@ library(ncdfFlow)
 library(flowWorkspace)
 library(dplyr)
 library(ggcyto)
-library(stringr) #this should be already added to the cytotypr package
+library(stringr) 
 library(scales)
 library(tidyr)
 library(superheat)
