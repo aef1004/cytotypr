@@ -159,8 +159,9 @@ dtTemplate <- fread(ws)
 ```{r echo = FALSE, message = FALSE}
 library(kableExtra)
 library(htmlTable)
+library(flextable)
 dtTemplate %>%
-   htmlTable
+   flextable()
 ```
 
 
@@ -211,8 +212,7 @@ FMO_gated_data <- cytotypr::tidy_flow_set(flowset_FMO_gated_data)
 
 ```{r echo = FALSE}
 head(FMO_gated_data)%>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 Each of the rows represents a different cell with the various marker channels as the columns and the corresponding MFI values for each cell and marker channel.
@@ -264,8 +264,7 @@ FMO_filtered_data <- filter_FMO(df_FMO_gated_data)
 A snapshot of the data is shown here:
 ```{r echo = FALSE}
 head(FMO_filtered_data)%>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 Our pipeline processes the data from FMOs to include in further analysis. Traditionally, FMOs have been manually gated to identify the upper threshold of a parameter’s value for negative cells. In our pipeline, we instead automate this analysis of the FMOs, measuring the threshold as the 99th percentile of the parameter values in each FMO (Fig. 2). Noise can originate from very small particles or debris that pass through the flow cytometer. In an ideal world, a 100% threshold could be used, but in reality, the 99% threshold is used to account for this random noise.
@@ -279,8 +278,7 @@ add_quantile <- get_99(FMO_filtered_data)
 
 ```{r echo = FALSE}
 add_quantile %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 
@@ -354,8 +352,7 @@ unique(df_all_gated$filename)
 A snapshot of `df_all_gated` is shown below
 ```{r echo = FALSE}
 head(df_all_gated) %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 
@@ -397,8 +394,7 @@ cleaned_df_all_gated <- df_all_gated %>%
 
 ```{r echo = FALSE}
 head(cleaned_df_all_gated) %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 Features are measurements in a dataset, such as the MFIs used in flow cytometry. Feature engineering is a machine learning technique that uses the original features in a dataset, possibly with the integration of external knowledge or data, to create new features that make the data easier to understand.
@@ -442,8 +438,7 @@ all_fe <- cleaned_df_all_gated %>%
 
 ```{r echo = FALSE}
 head(all_fe) %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 ### Optional Check with Flowjo
@@ -456,8 +451,7 @@ CD3_flowjo <- check_flowjo(all_fe, `CD3`)
 
 ```{r echo = FALSE}
 CD3_flowjo %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 
@@ -499,8 +493,7 @@ sample_populations <- all_fe %>%
 The filtering step has reduced the data to 14 populations
 ```{r echo = FALSE}
 sample_populations %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 To calculate the number of cells in each sample with each of the above described phenoyptes, we use the `identified_pop_per` function.
@@ -512,8 +505,7 @@ sample_populations_all_groups <- identified_pop_perc(sample_populations, all_fe,
 We can view the first few rows of the data
 ```{r}
 head(sample_populations_all_groups) %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 
@@ -632,8 +624,7 @@ values_for_plot <- fitted_models %>%
   
 ```{r echo = FALSE}
 values_for_plot %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 First we calculate where we want to place our labels on our ggplot. We calculate where the label will fall on the x-axis for each population by finding the range of the x-values and dividing by 2 to find the center. For the location on the y-axis, we place the label as the smallest y-axis value if the relationship is positive, and the largest y-axis value is the relationship is negative.
@@ -651,8 +642,7 @@ r_labeling <- left_join(pops_CFUs, values_for_plot, by = "pop") %>%
 
 ```{r echo = FALSE}
 r_labeling %>%
-   kable(align = c("l", "c", "c", "c")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+   flextable()
 ```
 
 
