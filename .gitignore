@@ -3,5 +3,6 @@
 .RData
 .Ruserdata
 *.fcs
+*.html
 /data/
 inst/doc
