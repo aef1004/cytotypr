@@ -13,6 +13,14 @@ knitr::opts_chunk$set(
 
 The goal of cytotypr is to identify flow cytometry cell populations efficiently using either Fluorescent Minus One controls (FMOs) or distinct population differences.
 
+An in-depth description of the pipeline can be found in our paper [Cyto-Feature Engineering: A Pipeline for Flow Cytometry Analysis to Uncover Immune Populations and Associations with Disease](https://www.nature.com/articles/s41598-020-64516-0)
+
+For additional examples, check out the "vignettes" folder which contains 4 additional examples
+
+- example_with_complex_plotting: this .Rmd contains examples of plots with different background colors based on lineage
+- example_with_reading_in_data: this .Rmd starts from the beginning with reading in the .fcs files
+- simple_example: this .Rmd contains a simple example with just 3 markers
+
 ## Installation
 
 You can install the development version of cytotypr from [GitHub](https://github.com/) with:
