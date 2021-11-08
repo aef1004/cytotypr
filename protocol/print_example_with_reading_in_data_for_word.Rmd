@@ -576,25 +576,32 @@ At this stage, the pipeline allows the integration of cell population measuremen
 
 We start by reading in the CFU data which is saved in an excel file and accessing the flow data ("sample_populations_all_groups") and joining the two datasets.
 
-```{r fig.width = 3.5, fig.height= 3.5}
+```{r}
 
 CFUs <- readxl::read_xlsx("../inst/extdata/CFU_data.xlsx") %>%
   dplyr::filter(Organ == "Lung") %>%
   dplyr::filter(Group == "1" | Group == "2")
 
+```
+
+
+```{r}
 # clean the flow data and prepare to join with CFU
 pops_for_CFUs <- sample_populations_all_groups %>%
   separate(filename, into = c("Timepoint", "Group", "Number"), sep = "_") %>%
   dplyr::mutate(Timepoint = str_replace(Timepoint, "D", "")) %>%
   dplyr::mutate(Timepoint = as.numeric(Timepoint),
                 Group = as.numeric(Group)) 
+```
 
+
+```{r}
 # join together the CFU data and the population data
 pops_CFUs <- inner_join(pops_for_CFUs, CFUs, by = c("Group", "Number", "Timepoint")) %>%
   dplyr::mutate(pop = as.numeric(str_extract(population, "[:digit:]+"))) %>%
   select(-population)
-
 ```
+
 
 Here we group and nest the data by the different populations and perform linear regressions on the data
 
