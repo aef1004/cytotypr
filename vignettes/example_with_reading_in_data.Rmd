@@ -481,10 +481,10 @@ Here we group and nest the data by the different populations and perform linear 
 fitted_models <- pops_CFUs %>%
   group_by(pop) %>%
   nest() %>%
-  mutate(model = map(data, ~lm(percentage ~ CFU, data = .)),
+  mutate(model = map(data, ~lm(CFU ~ percentage, data = .)),
          summary_model = map(model, tidy)) %>%
 unnest(summary_model) %>%
-  filter(term == "CFU") %>%
+  filter(term == "percentage") %>%
   select(pop, estimate, model) %>%
   mutate(tidy_model = map(model, broom::glance)) %>%
   unnest(tidy_model) %>%

@@ -480,7 +480,7 @@ pops_CFUs <- inner_join(pops_for_CFUs, CFUs, by = c("Group", "Number", "Timepoin
 fitted_models <- pops_CFUs %>%
   group_by(population) %>%
   nest() %>%
-  mutate(model = map(data, ~lm(percentage ~ CFU, data = .)),
+  mutate(model = map(data, ~lm(CFU ~ percentage, data = .)),
          tidy_model = map(model, broom::glance)) %>%
   unnest(tidy_model) %>%
   select(population, adj.r.squared, p.value)
