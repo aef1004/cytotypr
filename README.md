@@ -3,6 +3,21 @@ The goal of cytotypr is to identify flow cytometry cell populations
 efficiently using either Fluorescent Minus One controls (FMOs) or
 distinct population differences.
 
+An in-depth description of the pipeline can be found in our paper
+[Cyto-Feature Engineering: A Pipeline for Flow Cytometry Analysis to
+Uncover Immune Populations and Associations with
+Disease](https://www.nature.com/articles/s41598-020-64516-0)
+
+For additional examples, check out the “vignettes” folder which contains
+4 additional examples
+
+  - example\_with\_complex\_plotting: this .Rmd contains examples of
+    plots with different background colors based on lineage
+  - example\_with\_reading\_in\_data: this .Rmd starts from the
+    beginning with reading in the .fcs files
+  - simple\_example: this .Rmd contains a simple example with just 3
+    markers
+
 ## Installation
 
 You can install the development version of cytotypr from
@@ -20,7 +35,6 @@ plots for flow cytometry data using FMOs:
 
 ``` r
 library(cytotypr)
-## basic example code
 ```
 
 List of additional packages needed to run this example
@@ -59,7 +73,7 @@ output a dataframe:
 ``` r
 FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
 FMO_gated_data
-#> # A tibble: 417,910 x 49
+#> # A tibble: 417,910 × 49
 #>    filename   Time `SSC-H`  `SSC-A` `FSC-H`  `FSC-A` `BV421-H` `Pacific Blue-H`
 #>    <chr>     <dbl>   <dbl>    <dbl>   <dbl>    <dbl>     <dbl>            <dbl>
 #>  1 CD103.fcs   130  105692  126259.  354442  645303.     -58.8             295.
@@ -78,11 +92,7 @@ FMO_gated_data
 #> #   PE-Dazzle594-H <dbl>, PE-Cy5-H <dbl>, PE-Cy5.5-H <dbl>,
 #> #   PerCP-eFluor 710-H <dbl>, PE-Cy7-H <dbl>, APC-H <dbl>, APC-R700-H <dbl>,
 #> #   APC-Fire 750-H <dbl>, AF-H <dbl>, BV421-A <dbl>, Pacific Blue-A <dbl>,
-#> #   BV480-A <dbl>, BV510-A <dbl>, BV570-A <dbl>, BV605-A <dbl>, BV650-A <dbl>,
-#> #   BV711-A <dbl>, BV785-A <dbl>, BB515-A <dbl>, Alexa Fluor 532-A <dbl>,
-#> #   PE-A <dbl>, PE-Dazzle594-A <dbl>, PE-Cy5-A <dbl>, PE-Cy5.5-A <dbl>,
-#> #   PerCP-eFluor 710-A <dbl>, PE-Cy7-A <dbl>, APC-A <dbl>, APC-R700-A <dbl>,
-#> #   APC-Fire 750-A <dbl>, Zombie Nir-A <dbl>, AF-A <dbl>
+#> #   BV480-A <dbl>, BV510-A <dbl>, BV570-A <dbl>, BV605-A <dbl>, …
 ```
 
 Note that when you plot the FMOs here, you should see all of the FMOs
@@ -90,8 +100,7 @@ that you want to use. If you don’t see all of them, ensure that all
 ofyour filenames and column names for each of the markers matches
 exactly. For example, if the filename says “CD103\_f” but the
 corresponding column name for that marker is “CD103”, you need to either
-change the filename or column name so that they are exactly the
-same.
+change the filename or column name so that they are exactly the same.
 
 ``` r
 # note that here the filename and the column marker names need to match exactly
@@ -131,7 +140,7 @@ plot_FMOs(FMO_filtered_data, add_quantile)
 #> Warning: Removed 25721 rows containing missing values (geom_vline).
 ```
 
-<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-5-1.png" width="100%" />
 
 # Gated Data
 
@@ -233,7 +242,7 @@ total_phenotypes <- filter_for_total_pheno(all_fe, marker_order = order_of_marke
 heatmap_all_pheno(total_phenotypes)
 ```
 
-<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" />
 
 ``` r
 
@@ -267,7 +276,7 @@ simple_pop_df <- sample_populations %>%
 heatmap_subset_pheno(simple_pop_df, order_of_markers)
 ```
 
-<img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
 
 Correlation plot
 
@@ -283,7 +292,7 @@ plot_corr(melted_corr) +
     ggplot2::labs(fill = "Correlation") 
 ```
 
-<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
 
 Time Series Plot
 
@@ -314,7 +323,7 @@ ggplot(pops_for_plots_average, aes(x = Timepoint, y = average_percent,
   theme_gray() 
 ```
 
-<img src="man/figures/README-fig.height-6-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
 
 Data Visualization
 
@@ -345,10 +354,10 @@ pops_CFUs <- inner_join(pops_for_CFUs, CFUs, by = c("Group", "Number", "Timepoin
 fitted_models <- pops_CFUs %>%
   group_by(pop) %>%
   nest() %>%
-  mutate(model = map(data, ~lm(percentage ~ CFU, data = .)),
+  mutate(model = map(data, ~lm(CFU ~ percentage, data = .)),
          summary_model = map(model, tidy)) %>%
 unnest(summary_model) %>%
-  filter(term == "CFU") %>%
+  filter(term == "percentage") %>%
   select(pop, estimate, model) %>%
   mutate(tidy_model = map(model, broom::glance)) %>%
   unnest(tidy_model) %>%
@@ -364,19 +373,19 @@ values_for_plot %>%
   mutate("Significance" = p.val.adj < 0.05) %>%
   rename("p-value" = p.value,
          "Adjusted p-value" = p.val.adj) 
-#> # A tibble: 33 x 6
+#> # A tibble: 33 × 6
 #>      pop adj.r.squared `p-value` estimate `Adjusted p-value` Significance
 #>    <dbl>         <dbl>     <dbl>    <dbl>              <dbl> <lgl>       
-#>  1     1        0.624  0.0000581  -0.850            0.000479 TRUE        
-#>  2    10        0.263  0.0172     -0.121            0.0316   TRUE        
-#>  3    11        0.525  0.000402   -0.139            0.00189  TRUE        
-#>  4    12        0.135  0.0738     -0.0791           0.0962   FALSE       
-#>  5    13       -0.0474 0.638      -0.0227           0.658    FALSE       
-#>  6    14        0.220  0.0284     -0.291            0.0407   TRUE        
-#>  7    15        0.499  0.000627    0.489            0.00259  TRUE        
-#>  8    16        0.113  0.0937     -0.139            0.115    FALSE       
-#>  9    17        0.466  0.00107    -0.109            0.00394  TRUE        
-#> 10    18        0.318  0.00868    -0.0791           0.0179   TRUE        
+#>  1     1        0.624  0.0000581   -0.760           0.000479 TRUE        
+#>  2    10        0.263  0.0172      -2.52            0.0316   TRUE        
+#>  3    11        0.525  0.000402    -3.99            0.00189  TRUE        
+#>  4    12        0.135  0.0738      -2.35            0.0962   FALSE       
+#>  5    13       -0.0474 0.638       -0.626           0.658    FALSE       
+#>  6    14        0.220  0.0284      -0.916           0.0407   TRUE        
+#>  7    15        0.499  0.000627     1.08            0.00259  TRUE        
+#>  8    16        0.113  0.0937      -1.20            0.115    FALSE       
+#>  9    17        0.466  0.00107     -4.56            0.00394  TRUE        
+#> 10    18        0.318  0.00868     -4.53            0.0179   TRUE        
 #> # … with 23 more rows
 ```
 

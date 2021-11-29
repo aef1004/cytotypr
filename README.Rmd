@@ -35,7 +35,6 @@ This is a basic example which shows you how to obtain basic results and plots fo
 
 ```{r example}
 library(cytotypr)
-## basic example code
 ```
 
 List of additional packages needed to run this example
@@ -60,6 +59,12 @@ For the purpose of this basic example, the flow cytometry samples have been read
 We first want to convert the data to a "tidy data" format, to allow us to work with "tidyverse" tools for further analysis and visualization.
 
 Apply the `tidy_flow_set` function to the 'flowSet' of gated FMO data to output a dataframe:
+
+```{r echo = FALSE}
+load("./data/flowset_FMO_gated_data.rda")
+load("./data/flowset_gated_data.rda")
+```
+
 
 ```{r}
 FMO_gated_data <- tidy_flow_set(flowset_FMO_gated_data)
@@ -287,10 +292,10 @@ pops_CFUs <- inner_join(pops_for_CFUs, CFUs, by = c("Group", "Number", "Timepoin
 fitted_models <- pops_CFUs %>%
   group_by(pop) %>%
   nest() %>%
-  mutate(model = map(data, ~lm(percentage ~ CFU, data = .)),
+  mutate(model = map(data, ~lm(CFU ~ percentage, data = .)),
          summary_model = map(model, tidy)) %>%
 unnest(summary_model) %>%
-  filter(term == "CFU") %>%
+  filter(term == "percentage") %>%
   select(pop, estimate, model) %>%
   mutate(tidy_model = map(model, broom::glance)) %>%
   unnest(tidy_model) %>%
