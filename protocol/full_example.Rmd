@@ -12,9 +12,20 @@ knitr::opts_chunk$set(
 )
 ```
 
+## Videos
+
+There is a series of 4 videos that describe the pipeline and walk you through this example, they can be found here:
+
+ - [Introduction to cytotypr](https://www.youtube.com/watch?v=A8eo_4oRvCs)
+ - [Reading in and gating data](https://www.youtube.com/watch?v=ToN9yX-gmcU)
+ - [Feature engineering](https://www.youtube.com/watch?v=NsgVr2owgwE)
+ - [Visualizations](https://www.youtube.com/watch?v=p3-pHWNlPdg)
+ 
+You can find the code for this example on my [github page](https://github.com/aef1004/cytotypr) in the protocol folder labeled "full_example.Rmd"
+
 ## Overview
 
-Flow cytometers can now analyze up to 50 parameters (antigens, size, granularity, cytokines, transcription factors, etc.) per cell and millions of cells per sample1. Conventional flow cytometry data analysis uses manual gating of cells on 2D plots to distinguish populations 1–2 dimensions at a time; this makes it both subjective and time consuming (up to 15 hours per experiment)2. Better methods are therefore critically needed to take full advantage of this powerful technology. Researchers have responded with open-source tools, including tools for automated gating to remove user input bias (e.g., openCyto) and tools to identify and cluster cell populations concurrently using all parameters (e.g., FlowSOM, t-SNE)3,4,5. While powerful advances, these new tools lack a straightforward way to integrate data from important technical controls or to compare resulting cell populations with other experimental measurements. Work is ongoing across several research groups to extend existing open-source tools to address some of these gaps. CytoCompare and cytofast, for example, focus on data analysis after clustering6,7. However, few tools exist that allow users to incorporate the many flow cytometry controls required for good data acquisition and analysis, and the output from the available clustering tools are often difficult for immunologists to interpret.
+Flow cytometers can now analyze up to 50 parameters (antigens, size, granularity, cytokines, transcription factors, etc.) per cell and millions of cells per sample1. Conventional flow cytometry data analysis uses manual gating of cells on 2D plots to distinguish populations 1–2 dimensions at a time; this makes it both subjective and time consuming (up to 15 hours per experiment)2. Better methods are therefore critically needed to take full advantage of this powerful technology. Researchers have responded with open-source tools, including tools for automated gating to remove user input bias (e.g., openCyto) and tools to identify and cluster cell populations concurrently using all parameters (e.g., FlowSOM, t-SNE). While powerful advances, these new tools lack a straightforward way to integrate data from important technical controls or to compare resulting cell populations with other experimental measurements. Work is ongoing across several research groups to extend existing open-source tools to address some of these gaps. CytoCompare and cytofast, for example, focus on data analysis after clustering6,7. However, few tools exist that allow users to incorporate the many flow cytometry controls required for good data acquisition and analysis, and the output from the available clustering tools are often difficult for immunologists to interpret.
 
 We have developed an end-to-end method for analyzing flow cytometry data that aims to address these limitations. For flow cytometry data, a parameter often represents a biologically binary phenomenon—that a marker is present or missing on a cell. While variation exists in the flow cytometry measurements for each parameter within cells in each binary group, that within-group variation is often uninformative noise. Our pipeline leverages this underlying biology—it uses feature engineering to create binary features for whether each cell has a positive or negative value for each marker. It does this using either external thresholds identified based on Fluorescence Minus One controls (FMOs) or the availability to separate the data based on clear population separation. The pipeline therefore identifies cell populations based on positive/negative combinations of each flow cytometry marker, a description that is readily interpretable by immunologists.
 
@@ -40,7 +51,7 @@ Flow cytometers use a standardized file format for outputting data, the .fcs fil
 
 ## Installation
 
-You can install the development version of cytotypr from [GitHub](https://github.com/) with:
+You can install the development version of cytotypr from [GitHub](https://github.com/aef1004/cytotypr) with:
 
 ```{r message = FALSE, warning = FALSE, results = "hide"}
 if (!require("devtools")) install.packages("devtools")
@@ -81,7 +92,7 @@ This is an full example which shows you how to obtain basic results and plots fo
 
 Let's load the necessary packages first.
 
-```{r}
+```{r warning = FALSE}
 library(cytotypr)
 ```
 
